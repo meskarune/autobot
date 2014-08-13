@@ -11,7 +11,7 @@ nick = config.get("irc", "nick")
 nickpass = config.get("irc", "nickpass")
 name = config.get("irc", "name")
 listenhost = config.get("tcp", "host")
-listenport = int(config.get("tcp", "port")
+listenport = int(config.get("tcp", "port"))
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
@@ -26,9 +26,9 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         nick = event.source.nick
         connection = self.connection
         if command == "hello":
-            connection.privmsg( channel, "hello" + nick)
+            connection.privmsg( channel, "hello " + nick)
         elif command == "goodbye":
-            connection.privmsg( channel, "goodbye" + nick)
+            connection.privmsg( channel, "goodbye " + nick)
         else:
             connection.privmsg( channel, "no")
 
