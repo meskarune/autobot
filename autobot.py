@@ -34,13 +34,24 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
 
     def do_command (self, event, source, command):
         user = event.source.nick
+        isOper = self.channels[channel].is_oper(user)
         connection = self.connection
         if command == "hello":
             connection.privmsg(source, "hello " + user)
         elif command == "goodbye":
             connection.privmsg(source, "goodbye " + user)
+        elif command == "disconnect":
+            if isOper:
+                self.disconnect()
+            else:
+                connection.privmsg(source, "You don't have permission to do that")
+        elif command == "die":
+            if isOper:
+                self.die()
+            else:
+                connection.privmsg(source, "You don't have permission to do that")
         elif command == "help":
-            connection.privmsg(source, "Available commands: !{hello,goodbye,help}")
+            connection.privmsg(source, "Available commands: !{hello, goodbye, disconnect, die, help}")
         else:
             connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
