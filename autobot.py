@@ -18,19 +18,31 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
     def on_welcome ( self, connection, event ):
         connection.join ( channel )
 
-    def on_pubmsg ( self, connection, event ):
-        command = event.arguments[0].lstrip("!")
-        self.do_command(event, command)
+    #def on_privnotice(self, connection, event):
+    #    source = event.source.nick
+    #    if source and irc_lower(nm_to_n(source)) == "nickserv":
+    #        if event.arguments[0].find("IDENTIFY") >= 0:
+    #            connection.privmsg("nickserv", "identify" + nickpass)
 
-    def do_command (self, event, command):
-        nick = event.source.nick
+    def on_pubmsg (self, connection, event):
+        if event.arguments[0].startswith("!"):
+            self.do_command(event, channel, event.arguments[0].lstrip("!").lower())
+
+    def on_privmsg(self, connection, event):
+        if event.arguments[0].startswith("!"):
+            self.do_command(event, event.source.nick, event.arguments[0].lstrip("!").lower())
+
+    def do_command (self, event, source, command):
+        user = event.source.nick
         connection = self.connection
         if command == "hello":
-            connection.privmsg( channel, "hello " + nick)
+            connection.privmsg(source, "hello " + user)
         elif command == "goodbye":
-            connection.privmsg( channel, "goodbye " + nick)
+            connection.privmsg(source, "goodbye " + user)
+        elif command == "help":
+            connection.privmsg(source, "Available commands: !{hello,goodbye,help}")
         else:
-            connection.privmsg( channel, "no")
+            connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
 # Create the bot
 bot = AutoBot ( [( network, port )], nick, name )
