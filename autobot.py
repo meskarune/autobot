@@ -1,11 +1,17 @@
 import irc.bot
 
 # Connection information
-network = "irc.freenode.net"
-port = 6667
-channel = "##meskarune"
-nick = "starscream6000"
-name = "Python Test Bot"
+import configparser
+config = configparser.ConfigParser()
+config.read("autobot.conf")
+network = config.get("irc", "network")
+port = int(config.get("irc", "port"))
+channel = config.get("irc","channel")
+nick = config.get("irc", "nick")
+nickpass = config.get("irc", "nickpass")
+name = config.get("irc", "name")
+listenhost = config.get("tcp", "host")
+listenport = int(config.get("tcp", "port")
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
@@ -13,11 +19,8 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         connection.join ( channel )
 
     def on_pubmsg ( self, connection, event ):
-        #user = event.source.split("!")[0]
         command = event.arguments[0].lstrip("!")
         self.do_command(event, command)
-        #if event.arguments[0].lower() == "!hello":
-        #    connection.privmsg( channel, "hello " + user + " you said " + command)
 
     def do_command (self, event, command):
         nick = event.source.nick
