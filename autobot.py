@@ -1,6 +1,6 @@
-import irc.bot
+#!/usr/bin/python
 
-# Connection information
+import irc.bot
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
@@ -13,6 +13,9 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, connect_factory = factory)
         self.channel = channel
         self.nickpass = nickpass
+
+    def on_nicknameinuse(self, connection, event):
+        connection.nick(connection.get_nickname() + "_")
 
     def on_welcome ( self, connection, event ):
         connection.join ( self.channel )
