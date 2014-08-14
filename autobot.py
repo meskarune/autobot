@@ -11,6 +11,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         else:
             factory = irc.connection.Factory()
         irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, connect_factory = factory)
+        self.nick = nick
         self.channel = channel
         self.nickpass = nickpass
 
@@ -18,13 +19,16 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         connection.nick(connection.get_nickname() + "_")
 
     def on_welcome ( self, connection, event ):
-        connection.join ( self.channel )
+        connection.join(self.channel)
+        if self.nickpass and connection.get_nickname() != self.nick:
+            connection.privmsg('nickserv', 'ghost %s %s' % (self.nick, self.nickpass))
 
-    #def on_privnotice(self, connection, event):
-    #    source = event.source.nick
-    #    if source and irc_lower(nm_to_n(source)) == "nickserv":
-    #        if event.arguments[0].find("IDENTIFY") >= 0:
-    #            connection.privmsg("nickserv", "identify" + self.nickpass)
+    def on_privnotice(self, connection, event):
+        source = event.source.nick
+        if source and source.lower()  == "nickserv":
+            if event.arguments[0].find("IDENTIFY") >= 0:
+                if self.nickpass and self.nick == connection.get_nickname():
+                    connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
 
     def on_pubmsg (self, connection, event):
         if event.arguments[0].startswith("!"):
