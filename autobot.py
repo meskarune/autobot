@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import irc.bot
-import ssl, configparser
+import ssl, configparser, time
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
@@ -21,20 +21,20 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
     def on_welcome ( self, connection, event ):
         connection.join(self.channel)
         if self.nickpass and connection.get_nickname() != self.nick:
-            connection.privmsg('nickserv', 'ghost %s %s' % (self.nick, self.nickpass))
+            connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
 
     def on_privnotice(self, connection, event):
         source = event.source.nick
         if source and source.lower()  == "nickserv":
-            if event.arguments[0].find("IDENTIFY") >= 0:
+            if event.arguments[0].lower().find("identify") >= 0:
                 if self.nickpass and self.nick == connection.get_nickname():
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
 
     def on_kick(self, connection, event):
         kickedNick = event.arguments[0]
-            if kickedNick == self.nick:
-                time.sleep(10) #waits 10 seconds
-                connection.join(self.channel)
+        if kickedNick == self.nick:
+            time.sleep(10) #waits 10 seconds
+            connection.join(self.channel)
 
     def on_pubmsg (self, connection, event):
         if event.arguments[0].startswith("!"):
