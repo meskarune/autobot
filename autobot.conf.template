@@ -1,8 +1,8 @@
 [irc]
 network = irc.freenode.net
 port = 7000
-channel = ##meskarune
-nick = optimus-outdated
+channel = ##test
+nick = autobot
 nickpass = password
 name = Bot
 ssl = True

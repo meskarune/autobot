@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
 import irc.bot
+import ssl, configparser
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
     def __init__(self, nick, name, nickpass, channel, network, port=6667, usessl=False):
         if usessl:
-            import ssl
             factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
         else:
             factory = irc.connection.Factory()
@@ -66,7 +66,6 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
 #    connection.privmsg(channel, data)
 
 def main():
-    import configparser
     config = configparser.ConfigParser()
     config.read("autobot.conf")
     network = config.get("irc", "network")
