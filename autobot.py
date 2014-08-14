@@ -30,6 +30,12 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 if self.nickpass and self.nick == connection.get_nickname():
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
 
+    def on_kick(self, connection, event):
+        kickedNick = event.arguments[0]
+            if kickedNick == self.nick:
+                time.sleep(10) #waits 10 seconds
+                connection.join(self.channel)
+
     def on_pubmsg (self, connection, event):
         if event.arguments[0].startswith("!"):
             self.do_command(event, self.channel, event.arguments[0].lstrip("!").lower())
