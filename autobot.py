@@ -18,7 +18,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         self.channel = channel
         self.nickpass = nickpass
 
-        self.inputthread = TCPinput(self, listenhost, listenport)
+        self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
         self.inputthread.start()
 
     def on_nicknameinuse(self, connection, event):
@@ -80,29 +80,21 @@ class TCPinput (Thread):
     def __init__(self, connection, AutoBot, listenhost, listenport):
         Thread.__init__(self)
         self.setDaemon(1)
-        self.AutoBot = Autobot
+        self.AutoBot = AutoBot
         self.listenport = listenport
+        self.connection = connection
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setblocking(0)
+        #self.socket.setblocking(0)
         self.socket.bind((listenhost, listenport))
-
-        self.AutoBot.announce("I've created the socket")
-
-    #def _listen(self):
-    #    self.socket.listen(5)
-    #    while 1:
-    #        data, listenhost = self.socket.accept()
+        self.socket.listen(10)
 
     def run(self):
         while 1:
-            data, self.listenport = self.socket.recvfrom(1024)
-            self.AutoBot.announce(data)
-
-    #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #s.bind(( config.get("tcp", "host").get('iface', ''), int(config.get("tcp", "port"))))
-    #s.listen(5)
-    #data = s.recv(1024)
+            conn, addr = self.socket.accept()
+            data, self.listenport = conn.recvfrom(1024)
+            print(data)
+            self.AutoBot.announce(self.connection, data)
 
 def main():
     config = configparser.ConfigParser()
