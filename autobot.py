@@ -85,7 +85,7 @@ class TCPinput (Thread):
         self.connection = connection
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #self.socket.setblocking(0)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((listenhost, listenport))
         self.socket.listen(10)
 
@@ -94,7 +94,10 @@ class TCPinput (Thread):
             conn, addr = self.socket.accept()
             data, self.listenport = conn.recvfrom(1024)
             print(data)
-            self.AutoBot.announce(self.connection, data)
+            if data:
+                self.AutoBot.announce(self.connection, data)
+            else:
+                self.socket.close()
 
 def main():
     config = configparser.ConfigParser()
