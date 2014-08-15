@@ -1,19 +1,25 @@
 #!/usr/bin/python
 
+import configparser, socket, ssl, time
 import irc.bot
-import ssl, configparser, time
+from threading import Thread
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
-    def __init__(self, nick, name, nickpass, channel, network, port=6667, usessl=False):
+    def __init__(self, nick, name, nickpass, channel, network, listenhost, listenport, port=6667, usessl=False):
         if usessl:
             factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
         else:
             factory = irc.connection.Factory()
+
         irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, connect_factory = factory)
+
         self.nick = nick
         self.channel = channel
         self.nickpass = nickpass
+
+        self.inputthread = TCPinput(self, listenhost, listenport)
+        self.inputthread.start()
 
     def on_nicknameinuse(self, connection, event):
         connection.nick(connection.get_nickname() + "_")
@@ -67,13 +73,38 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         else:
             connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
-# Create TCP socket
-#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#s.bind((listenhost.get('iface', ''), listenport))
-#s.listen(5)
-#data = s.recv(1024)
-#if data:
-#    connection.privmsg(channel, data)
+    def announce (self, connection, text):
+        connection.privmsg(self.channel, text)
+
+class TCPinput (Thread):
+    def __init__(self, connection, AutoBot, listenhost, listenport):
+        Thread.__init__(self)
+        self.setDaemon(1)
+        self.AutoBot = Autobot
+        self.listenport = listenport
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setblocking(0)
+        self.socket.bind((host, port))
+
+        self.AutoBot.announce("I've created the socket")
+
+    #def _listen(self):
+    #    self.socket.listen(5)
+    #    while 1:
+    #        #data, host = self.socket.recvfrom(1024)
+    #        data, host = self.socket.accept()
+    #        bot.connection.privmsg("meskarune", data)
+
+    def run(self):
+        while 1:
+            data, self.listenport = self.socket.recvfrom(1024)
+            self.AutoBot.announce(data)
+
+    #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #s.bind(( config.get("tcp", "host").get('iface', ''), int(config.get("tcp", "port"))))
+    #s.listen(5)
+    #data = s.recv(1024)
 
 def main():
     config = configparser.ConfigParser()
@@ -88,7 +119,7 @@ def main():
     listenport = int(config.get("tcp", "port"))
     _ssl = config.getboolean("irc", "ssl")
 
-    bot = AutoBot (nick, name, nickpass, channel, network, port, _ssl)
+    bot = AutoBot (nick, name, nickpass, channel, network, listenhost, listenport, port, _ssl)
     bot.start()
 
 if __name__ == "__main__":
