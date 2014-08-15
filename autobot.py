@@ -85,16 +85,14 @@ class TCPinput (Thread):
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(0)
-        self.socket.bind((host, port))
+        self.socket.bind((listenhost, listenport))
 
         self.AutoBot.announce("I've created the socket")
 
     #def _listen(self):
     #    self.socket.listen(5)
     #    while 1:
-    #        #data, host = self.socket.recvfrom(1024)
-    #        data, host = self.socket.accept()
-    #        bot.connection.privmsg("meskarune", data)
+    #        data, listenhost = self.socket.accept()
 
     def run(self):
         while 1:
