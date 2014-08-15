@@ -108,12 +108,12 @@ class TCPinput (Thread):
                 else:
                     conn = self.stuff[sfd]
 
-                    buf = conn.recv(1024)                
+                    buf = conn.recv(1024)
                     if not buf:
                         conn.close()
                         continue
 
-                    self.AutoBot.announce(self.connection, buf)
+                    self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():
     config = configparser.ConfigParser()
