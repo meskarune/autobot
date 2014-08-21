@@ -7,7 +7,7 @@ from threading import Thread
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
-    def __init__(self, nick, name, nickpass, channel, network, listenhost, listenport, port=6667, usessl=False):
+    def __init__(self, nick, name, nickpass, channels, network, listenhost, listenport, port=6667, usessl=False):
         if usessl:
             factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
         else:
@@ -16,7 +16,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, connect_factory = factory)
 
         self.nick = nick
-        self.channel = channel
+        self.channels = channels
         self.nickpass = nickpass
 
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
@@ -26,7 +26,8 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         connection.nick(connection.get_nickname() + "_")
 
     def on_welcome ( self, connection, event ):
-        connection.join(self.channel)
+        for channel in self.channels:
+            connection.join(channel)
         if self.nickpass and connection.get_nickname() != self.nick:
             connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
 
@@ -41,11 +42,13 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         kickedNick = event.arguments[0]
         if kickedNick == self.nick:
             time.sleep(10) #waits 10 seconds
-            connection.join(self.channel)
+            for channel in self.channels:
+                connection.join(channel)
 
     def on_pubmsg (self, connection, event):
+        channel = event.target()
         if event.arguments[0].startswith("!"):
-            self.do_command(event, self.channel, event.arguments[0].lstrip("!").lower())
+            self.do_command(event, channel, event.arguments[0].lstrip("!").lower())
 
     def on_privmsg(self, connection, event):
         if event.arguments[0].startswith("!"):
@@ -61,12 +64,12 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             connection.privmsg(source, "goodbye " + user)
         elif command == "disconnect":
             if isOper:
-                self.disconnect()
+                self.disconnect(msg="I'll be back!")
             else:
                 connection.privmsg(source, "You don't have permission to do that")
         elif command == "die":
             if isOper:
-                self.die()
+                self.die(msg="Bye, cruel world!")
             else:
                 connection.privmsg(source, "You don't have permission to do that")
         elif command == "help":
@@ -75,7 +78,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
     def announce (self, connection, text):
-        connection.privmsg(self.channel, text)
+        connection.notice(self.channel, text)
 
 class TCPinput (Thread):
     def __init__(self, connection, AutoBot, listenhost, listenport):
@@ -120,15 +123,18 @@ def main():
     config.read("autobot.conf")
     network = config.get("irc", "network")
     port = int(config.get("irc", "port"))
-    channel = config.get("irc","channel")
+    _ssl = config.getboolean("irc", "ssl")
+
+    channels = [channel.strip() for channel in config.get("irc", "channels").split(",")]
+    #channel = config.get("irc","channel")
+
     nick = config.get("irc", "nick")
     nickpass = config.get("irc", "nickpass")
     name = config.get("irc", "name")
     listenhost = config.get("tcp", "host")
     listenport = int(config.get("tcp", "port"))
-    _ssl = config.getboolean("irc", "ssl")
 
-    bot = AutoBot (nick, name, nickpass, channel, network, listenhost, listenport, port, _ssl)
+    bot = AutoBot (nick, name, nickpass, channels, network, listenhost, listenport, port, _ssl)
     bot.start()
 
 if __name__ == "__main__":
