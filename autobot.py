@@ -46,22 +46,28 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 connection.join(channel)
 
     def on_pubmsg (self, connection, event):
-        channel = event.target()
+        channel = event.target
         if event.arguments[0].startswith("!"):
-            self.do_command(event, channel, event.arguments[0].lstrip("!").lower())
+            if self.channels[channel].is_oper(event.source.nick):
+                self.do_command(event, True, channel, event.arguments[0].lstrip("!").lower())
+            else:
+                self.do_command(event, False, channel, event.arguments[0].lstrip("!").lower())
 
     def on_privmsg(self, connection, event):
         if event.arguments[0].startswith("!"):
-            self.do_command(event, event.source.nick, event.arguments[0].lstrip("!").lower())
+            self.do_command(event, False, event.source.nick, event.arguments[0].lstrip("!").lower())
 
-    def do_command (self, event, source, command):
+    def do_command (self, event, isOper, source, command):
         user = event.source.nick
-        isOper = self.channel_list[self.channel].is_oper(user)
         connection = self.connection
         if command == "hello":
             connection.privmsg(source, "hello " + user)
         elif command == "goodbye":
             connection.privmsg(source, "goodbye " + user)
+        elif command == "slap":
+            connection.action(source, self.nick + " slaps " + user + " around a bit with a large trout")
+        elif command == "help":
+            connection.privmsg(source, "Available commands: ![hello, goodbye, slap, disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
@@ -72,8 +78,6 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 self.die(msg="Bye, cruel world!")
             else:
                 connection.privmsg(source, "You don't have permission to do that")
-        elif command == "help":
-            connection.privmsg(source, "Available commands: !{hello, goodbye, disconnect, die, help}")
         else:
             connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
@@ -124,10 +128,7 @@ def main():
     network = config.get("irc", "network")
     port = int(config.get("irc", "port"))
     _ssl = config.getboolean("irc", "ssl")
-
     channels = [channel.strip() for channel in config.get("irc", "channels").split(",")]
-    #channel = config.get("irc","channel")
-
     nick = config.get("irc", "nick")
     nickpass = config.get("irc", "nickpass")
     name = config.get("irc", "name")
