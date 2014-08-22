@@ -16,7 +16,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, connect_factory = factory)
 
         self.nick = nick
-        self.channels = channels
+        self.channel_list = channels
         self.nickpass = nickpass
 
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
@@ -26,7 +26,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         connection.nick(connection.get_nickname() + "_")
 
     def on_welcome ( self, connection, event ):
-        for channel in self.channels:
+        for channel in self.channel_list:
             connection.join(channel)
         if self.nickpass and connection.get_nickname() != self.nick:
             connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
@@ -42,7 +42,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         kickedNick = event.arguments[0]
         if kickedNick == self.nick:
             time.sleep(10) #waits 10 seconds
-            for channel in self.channels:
+            for channel in self.channel_list:
                 connection.join(channel)
 
     def on_pubmsg (self, connection, event):
@@ -56,7 +56,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
 
     def do_command (self, event, source, command):
         user = event.source.nick
-        isOper = self.channels[self.channel].is_oper(user)
+        isOper = self.channel_list[self.channel].is_oper(user)
         connection = self.connection
         if command == "hello":
             connection.privmsg(source, "hello " + user)
