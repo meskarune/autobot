@@ -94,15 +94,26 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
 
             def handle_token(token):
                 """Depending on whether token was quoted in angled brackets, return
-                either the token in verbatim, or get a hyponym from WordNet.
+                either the token in verbatim, or get a related word
+                from WordNet.
+
+                Quoted tokens may end in a POS specifier of the form
+                «.POS».
+
                 """
 
                 quoted = re.findall(r"<(.+?)>", token)
-                if quoted:
-                    token = quoted[0]
-                    return throw.get_hyponym(token)
-                else:
+                if not quoted:
                     return token
+
+                quoted = quoted[0]
+                if "." in quoted:
+                    query, *pos = quoted.split(".", maxsplit=1)
+                    pos = pos[0]
+                    return throw.get_related(query, pos)
+                else:
+                    query = quoted
+                    return throw.get_related(query)
 
             try:
                 thing = " ".join(map(handle_token, query_tokens))
