@@ -5,6 +5,9 @@ import select
 import irc.bot
 from threading import Thread
 
+from commands import throw
+
+
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
     def __init__(self, nick, name, nickpass, channels, network, listenhost, listenport, port=6667, usessl=False):
@@ -78,6 +81,19 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 self.die(msg="Bye, cruel world!")
             else:
                 connection.privmsg(source, "You don't have permission to do that")
+        elif command.startswith("throw "):
+            [_, query, target, *_] = command.split(" ")
+            try:
+                thing = throw.get_hyponym(query)
+            except ValueError:
+                reply = "I can’t seem to find that to throw. ヽ(´ー｀)ノ"
+                connection.privmsg(source, reply)
+            else:
+                action = "throws {thing} at {target}".format(
+                    thing=thing,
+                    target=target
+                )
+                connection.action(source, action)
         else:
             connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
