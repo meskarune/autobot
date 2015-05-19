@@ -92,15 +92,20 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 connection.privmsg(source, reply)
                 return
 
+            (query, *modifier) = query.split(" of ")
+            modifier = " ".join(modifier)
+            modifier = " of " + modifier if modifier else ""
+
             try:
                 thing = throw.get_hyponym(query)
             except ValueError:
                 reply = "I can’t seem to find that to throw. ヽ(´ー｀)ノ"
                 connection.privmsg(source, reply)
             else:
-                action = "throws {thing} at {target}".format(
+                action = "throws {thing}{modifier} at {target}".format(
                     thing=thing,
-                    target=target
+                    target=target,
+                    modifier=modifier
                 )
                 connection.action(source, action)
         else:
