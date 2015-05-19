@@ -9,6 +9,9 @@ def get_hyponym(query):
     """ Return a random hyponym for query.
     """
 
+    # WordNet uses the underscore to split lemmata.
+    query = query.replace(" ", "_")
+
     thing_lemmas = wordnet.lemmas(query, pos=wordnet.NOUN)
     thing_senses = [
         lemma.synset()

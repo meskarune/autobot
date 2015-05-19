@@ -81,8 +81,17 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 self.die(msg="Bye, cruel world!")
             else:
                 connection.privmsg(source, "You don't have permission to do that")
+
         elif command.startswith("throw "):
-            [_, query, target, *_] = command.split(" ")
+
+            [_, target, *remain] = command.split(" ")
+            query = " ".join(remain)
+
+            if not query:
+                reply = "Throw what now?"
+                connection.privmsg(source, reply)
+                return
+
             try:
                 thing = throw.get_hyponym(query)
             except ValueError:
