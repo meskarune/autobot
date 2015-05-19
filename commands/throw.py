@@ -36,9 +36,5 @@ def get_hyponym(query):
 
     # Fix up whitespace.
     hyponyms = list(map(lambda lexeme: lexeme.replace("_", " "), hyponyms))
-    choice = random.choice(hyponyms)
 
-    # Add determiner.
-    det = "an" if choice[0] in "aeiou" else "a"
-
-    return "{det} {choice}".format(**locals())
+    return random.choice(hyponyms)

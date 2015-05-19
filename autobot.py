@@ -2,6 +2,7 @@
 
 import configparser, socket, ssl, time
 import select
+import re
 import irc.bot
 from threading import Thread
 
@@ -84,28 +85,34 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
 
         elif command.startswith("throw "):
 
-            [_, target, *remain] = command.split(" ")
-            query = " ".join(remain)
+            [_, target, *query_tokens] = command.split(" ")
 
-            if not query:
+            if not query_tokens:
                 reply = "Throw what now?"
                 connection.privmsg(source, reply)
                 return
 
-            (query, *modifier) = query.split(" of ")
-            modifier = " ".join(modifier)
-            modifier = " of " + modifier if modifier else ""
+            def handle_token(token):
+                """Depending on whether token was quoted in angled brackets, return
+                either the token in verbatim, or get a hyponym from WordNet.
+                """
+
+                quoted = re.findall(r"<(.+?)>", token)
+                if quoted:
+                    token = quoted[0]
+                    return throw.get_hyponym(token)
+                else:
+                    return token
 
             try:
-                thing = throw.get_hyponym(query)
+                thing = " ".join(map(handle_token, query_tokens))
             except ValueError:
                 reply = "I can’t seem to find that to throw. ヽ(´ー｀)ノ"
                 connection.privmsg(source, reply)
             else:
-                action = "throws {thing}{modifier} at {target}".format(
+                action = "throws {thing} at {target}".format(
                     thing=thing,
-                    target=target,
-                    modifier=modifier
+                    target=target
                 )
                 connection.action(source, action)
         else:
