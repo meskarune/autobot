@@ -4,6 +4,7 @@ import nltk
 from nltk.corpus import wordnet
 nltk.download("wordnet")
 
+_VOWELS = "aeiou"
 
 
 def get_related(query, pos="n"):
@@ -27,6 +28,25 @@ def get_related(query, pos="n"):
     result = result.replace("_", " ")
     return result
 
+
+def fix_determiners(text):
+    """Fix up instances of «a» and «an»."""
+
+    def pairwise(l):
+        return zip(l[:-1], l[1:])
+
+    def is_det(token):
+        return token in ("a", "an")
+
+    fixed = []
+    tokens = text.split(" ")
+    for t1, t2 in pairwise(tokens):
+        if is_det(t1):
+            t1 = "an" if t2[0] in _VOWELS else "a"
+        fixed.append(t1)
+    fixed.append(tokens[-1])
+
+    return " ".join(fixed)
 
 
 def _lemmata_by_freq(query, pos):

@@ -117,6 +117,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
 
             try:
                 thing = " ".join(map(handle_token, query_tokens))
+                thing = throw.fix_determiners(thing)
             except ValueError:
                 reply = "I can’t seem to find that to throw. ヽ(´ー｀)ノ"
                 connection.privmsg(source, reply)
