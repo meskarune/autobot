@@ -13,6 +13,14 @@ def get_hyponym(query):
     query = query.replace(" ", "_")
 
     thing_lemmas = wordnet.lemmas(query, pos=wordnet.NOUN)
+
+    # Prefer more frequent lemmata.
+    thing_lemmas = sorted(
+        thing_lemmas,
+        key=lambda lemma: lemma.count(),
+        reverse=True
+    )
+
     thing_senses = [
         lemma.synset()
         for lemma in thing_lemmas
@@ -21,12 +29,14 @@ def get_hyponym(query):
     if not thing_senses:
         raise ValueError("No results for query {}".format(query))
 
+    # Commit to the most frequent sense.
+    thing_synset = thing_senses[0]
+
     def get_hyponym(lemma):
         return lemma.hyponyms()
 
     hyponyms = [
         hyponym_lemma.name()
-        for thing_synset in thing_senses
         for hyponym_synset in thing_synset.closure(get_hyponym)
         for hyponym_lemma in hyponym_synset.lemmas()
     ]
