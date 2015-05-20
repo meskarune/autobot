@@ -2,9 +2,17 @@
 
 import configparser, socket, ssl, time
 import select
+<<<<<<< HEAD
 #import logging.config
+=======
+import re
+>>>>>>> 469092af87af4090772c4ed8a50fe61f4a2e2531
 import irc.bot
 from threading import Thread
+
+import irc.client
+import irc.buffer
+irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
 
 from commands import throw
 
@@ -40,6 +48,8 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             #self.log.info('Recovered nick')
 
     def on_privnotice(self, connection, event):
+        if not event.source:
+            return
         source = event.source.nick
         if source and source.lower()  == "nickserv":
             if event.arguments[0].lower().find("identify") >= 0:
@@ -88,10 +98,42 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 self.die(msg="Bye, cruel world!")
             else:
                 connection.privmsg(source, "You don't have permission to do that")
+
         elif command.startswith("throw "):
-            [_, query, target, *_] = command.split(" ")
+
+            [_, target, *query_tokens] = command.split(" ")
+
+            if not query_tokens:
+                reply = "Throw what now?"
+                connection.privmsg(source, reply)
+                return
+
+            def handle_token(token):
+                """Depending on whether token was quoted in angled brackets, return
+                either the token in verbatim, or get a related word
+                from WordNet.
+
+                Quoted tokens may end in a POS specifier of the form
+                «.POS».
+
+                """
+
+                quoted = re.findall(r"<(.+?)>", token)
+                if not quoted:
+                    return token
+
+                quoted = quoted[0]
+                if "." in quoted:
+                    query, *pos = quoted.split(".", maxsplit=1)
+                    pos = pos[0]
+                    return throw.get_related(query, pos)
+                else:
+                    query = quoted
+                    return throw.get_related(query)
+
             try:
-                thing = throw.get_hyponym(query)
+                thing = " ".join(map(handle_token, query_tokens))
+                thing = throw.fix_determiners(thing)
             except ValueError:
                 reply = "I can’t seem to find that to throw. ヽ(´ー｀)ノ"
                 connection.privmsg(source, reply)
