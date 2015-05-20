@@ -105,7 +105,8 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
     def announce (self, connection, text):
-        connection.notice(self.channel, text)
+        for channel in self.channel_list:
+            connection.notice(channel, text)
 
 class TCPinput (Thread):
     def __init__(self, connection, AutoBot, listenhost, listenport):
