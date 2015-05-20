@@ -40,6 +40,8 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
 
     def on_privnotice(self, connection, event):
+        if not event.source:
+            return
         source = event.source.nick
         if source and source.lower()  == "nickserv":
             if event.arguments[0].lower().find("identify") >= 0:
