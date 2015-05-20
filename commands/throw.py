@@ -75,6 +75,11 @@ def _get_related_a(query):
     adj_synset = adj_senses[0]
 
     related = adj_synset.similar_tos()
+
+    if not related:
+        err = "No related adjectives for query {}".format(query)
+        raise ValueError(err)
+
     related_sense = random.choice(related)
     related_lemma = random.choice(related_sense.lemmas())
     return related_lemma.name()
