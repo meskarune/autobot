@@ -77,7 +77,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         elif command == "slap":
             connection.action(source, "slaps " + user + " around a bit with a large trout")
         elif command == "help":
-            connection.privmsg(source, "Available commands: ![hello, goodbye, slap, disconnect, die, help]")
+            connection.privmsg(source, "Available commands: ![hello, goodbye, slap, throw [nick] [wordnet],disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
