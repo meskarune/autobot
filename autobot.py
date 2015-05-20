@@ -2,11 +2,8 @@
 
 import configparser, socket, ssl, time
 import select
-<<<<<<< HEAD
 #import logging.config
-=======
 import re
->>>>>>> 469092af87af4090772c4ed8a50fe61f4a2e2531
 import irc.bot
 from threading import Thread
 
@@ -112,10 +109,8 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 """Depending on whether token was quoted in angled brackets, return
                 either the token in verbatim, or get a related word
                 from WordNet.
-
                 Quoted tokens may end in a POS specifier of the form
                 «.POS».
-
                 """
 
                 quoted = re.findall(r"<(.+?)>", token)
