@@ -2,6 +2,7 @@
 
 import configparser, socket, ssl, time
 import select
+#import logging.config
 import irc.bot
 from threading import Thread
 
@@ -22,6 +23,8 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         self.channel_list = channels
         self.nickpass = nickpass
 
+        #self.log = logging.getLogger('autobot')
+
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
         self.inputthread.start()
 
@@ -31,8 +34,10 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
     def on_welcome ( self, connection, event ):
         for channel in self.channel_list:
             connection.join(channel)
+            #self.log.info("Joined channel %s" % (channel))
         if self.nickpass and connection.get_nickname() != self.nick:
             connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
+            #self.log.info('Recovered nick')
 
     def on_privnotice(self, connection, event):
         source = event.source.nick
@@ -40,6 +45,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             if event.arguments[0].lower().find("identify") >= 0:
                 if self.nickpass and self.nick == connection.get_nickname():
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
+                    #self.log.info('Identified to nickserv')
 
     def on_kick(self, connection, event):
         kickedNick = event.arguments[0]
@@ -50,6 +56,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
 
     def on_pubmsg (self, connection, event):
         channel = event.target
+        #self.log.log(event.source.nick + event.arguments[0])
         if event.arguments[0].startswith("!"):
             if self.channels[channel].is_oper(event.source.nick):
                 self.do_command(event, True, channel, event.arguments[0].lstrip("!").lower())
@@ -68,7 +75,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         elif command == "goodbye":
             connection.privmsg(source, "goodbye " + user)
         elif command == "slap":
-            connection.action(source, self.nick + " slaps " + user + " around a bit with a large trout")
+            connection.action(source, "slaps " + user + " around a bit with a large trout")
         elif command == "help":
             connection.privmsg(source, "Available commands: ![hello, goodbye, slap, disconnect, die, help]")
         elif command == "disconnect":
@@ -150,6 +157,9 @@ def main():
     name = config.get("irc", "name")
     listenhost = config.get("tcp", "host")
     listenport = int(config.get("tcp", "port"))
+
+    #FORMAT = '%(asctime)-15s %(clientip)s %(user)-8s %(message)s'
+    #logging.basicConfig(format=FORMAT)
 
     bot = AutoBot (nick, name, nickpass, channels, network, listenhost, listenport, port, _ssl)
     bot.start()

@@ -1,7 +1,7 @@
 [irc]
 network = irc.freenode.net
 port = 7000
-channel = ##test
+channels = ##test, ##test2
 nick = autobot
 nickpass = password
 name = Bot
