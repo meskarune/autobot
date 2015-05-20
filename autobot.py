@@ -6,6 +6,10 @@ import re
 import irc.bot
 from threading import Thread
 
+import irc.client
+import irc.buffer
+irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
+
 from commands import throw
 
 
