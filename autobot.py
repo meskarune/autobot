@@ -44,12 +44,28 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
                     self.logmessage("autobot", "nickserv", "Identified to nickserv")
 
+    #def on_disconnect(self, connection, event):
+        #wait 60 seconds and try to reconnect? or exit?
+
     def on_kick(self, connection, event):
+        channel = event.target
         kickedNick = event.arguments[0]
+        kicker = event.source.nick
+        self.logmessage(channel, "info", "%s was kicked from the channel by %s" % (kickedNick, kicker))
         if kickedNick == self.nick:
             time.sleep(10) #waits 10 seconds
             for channel in self.channel_list:
                 connection.join(channel)
+
+    def on_join(self, connection, event):
+        channel = event.target
+        nick = event.source.nick
+        self.logmessage(channel, "info", "%s joined the channel" % (nick))
+
+    def on_part(self, connection, event):
+        channel = event.target
+        nick = event.source.nick
+        self.logmessage(channel, "info", "%s left the channel" % (nick))
 
     def on_pubmsg (self, connection, event):
         channel = event.target
