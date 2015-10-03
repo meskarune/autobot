@@ -12,13 +12,10 @@ personal use. Then run the bot with ```python autobot.py```
 
 To-do:
 
-SASL auth/CertFP auth
+* SASL auth
+* CertFP auth
+* Add logger
+* Make modular so scripts can be loaded from a directory and be used by the bot
 
-Refactor TCP listener
-
-Add logger
-
-Make modular so scripts can be loaded from a directory and be used by the bot
-
-Refactor OP's check to loop through connected channels and check if the user has
-OP's in any of them, if yes, then isOper is True - maybe should skip this and just have a mod list in configuration?
+Refactor irc channel OP check to loop through connected channels and check if the user has
+OPs in any of them, if yes, then isOper is True - maybe should skip this and just have a mod list in configuration?
