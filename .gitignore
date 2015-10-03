@@ -1,2 +1,3 @@
 autobot.conf
 *.pyc
+*.log
