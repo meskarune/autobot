@@ -1,16 +1,10 @@
 #!/usr/bin/python
 
-import configparser, socket, ssl, time
+import configparser, socket, ssl, time, datetime
 import select
-#import logging.config
 import re
 import irc.bot
 from threading import Thread
-
-import irc.client
-import irc.buffer
-
-irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
@@ -26,8 +20,6 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         self.channel_list = channels
         self.nickpass = nickpass
 
-        #self.log = logging.getLogger('autobot')
-
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
         self.inputthread.start()
 
@@ -37,10 +29,10 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
     def on_welcome ( self, connection, event ):
         for channel in self.channel_list:
             connection.join(channel)
-            #self.log.info("Joined channel %s" % (channel))
+            self.logmessage("autobot", "info", "Joined channel %s" % (channel))
         if self.nickpass and connection.get_nickname() != self.nick:
             connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
-            #self.log.info('Recovered nick')
+            self.logmessage("autobot", "nickserv", "Recovered nick")
 
     def on_privnotice(self, connection, event):
         if not event.source:
@@ -50,7 +42,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             if event.arguments[0].lower().find("identify") >= 0:
                 if self.nickpass and self.nick == connection.get_nickname():
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
-                    #self.log.info('Identified to nickserv')
+                    self.logmessage("autobot", "nickserv", "Identified to nickserv")
 
     def on_kick(self, connection, event):
         kickedNick = event.arguments[0]
@@ -61,12 +53,14 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
 
     def on_pubmsg (self, connection, event):
         channel = event.target
-        #self.log.log(event.source.nick + event.arguments[0])
-        if event.arguments[0].startswith("!"):
-            if self.channels[channel].is_oper(event.source.nick):
-                self.do_command(event, True, channel, event.arguments[0].lstrip("!").lower())
+        nick = event.source.nick
+        message = event.arguments[0]
+        self.logmessage(channel, nick, message)
+        if message.startswith("!"):
+            if self.channels[channel].is_oper(nick):
+                self.do_command(event, True, channel, message.lstrip("!").lower())
             else:
-                self.do_command(event, False, channel, event.arguments[0].lstrip("!").lower())
+                self.do_command(event, False, channel, message.lstrip("!").lower())
 
     def on_privmsg(self, connection, event):
         if event.arguments[0].startswith("!"):
@@ -103,6 +97,11 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
     def announce (self, connection, text):
         for channel in self.channel_list:
             connection.notice(channel, text)
+
+    def logmessage (self, channel, nick, message):
+        timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        with open(channel + '.log', 'a') as log:
+            log.write("%s <%s> %s\n" % (timestamp, nick, message))
 
 class TCPinput (Thread):
     def __init__(self, connection, AutoBot, listenhost, listenport):
