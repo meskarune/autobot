@@ -9,10 +9,8 @@ from threading import Thread
 
 import irc.client
 import irc.buffer
+
 irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
-
-from commands import throw
-
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
@@ -81,10 +79,14 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             connection.privmsg(source, "hello " + user)
         elif command == "goodbye":
             connection.privmsg(source, "goodbye " + user)
+        elif command == "ugm":
+            connection.privmsg(source, "good (UGT) morning to all from " + user)
+        elif command == "ugn":
+            connection.privmsg(source, "good (UGT) night to all from " + user)
         elif command == "slap":
             connection.action(source, "slaps " + user + " around a bit with a large trout")
         elif command == "help":
-            connection.privmsg(source, "Available commands: ![hello, goodbye, slap, throw [nick] [wordnet],disconnect, die, help]")
+            connection.privmsg(source, "Available commands: ![hello, goodbye, ugm, ugn, slap, disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
@@ -95,49 +97,6 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 self.die(msg="Bye, cruel world!")
             else:
                 connection.privmsg(source, "You don't have permission to do that")
-
-        elif command.startswith("throw "):
-
-            [_, target, *query_tokens] = command.split(" ")
-
-            if not query_tokens:
-                reply = "Throw what now?"
-                connection.privmsg(source, reply)
-                return
-
-            def handle_token(token):
-                """Depending on whether token was quoted in angled brackets, return
-                either the token in verbatim, or get a related word
-                from WordNet.
-                Quoted tokens may end in a POS specifier of the form
-                «.POS».
-                """
-
-                quoted = re.findall(r"<(.+?)>", token)
-                if not quoted:
-                    return token
-
-                quoted = quoted[0]
-                if "." in quoted:
-                    query, *pos = quoted.split(".", maxsplit=1)
-                    pos = pos[0]
-                    return throw.get_related(query, pos)
-                else:
-                    query = quoted
-                    return throw.get_related(query)
-
-            try:
-                thing = " ".join(map(handle_token, query_tokens))
-                thing = throw.fix_determiners(thing)
-            except ValueError:
-                reply = "I can’t seem to find that to throw. ヽ(´ー｀)ノ"
-                connection.privmsg(source, reply)
-            else:
-                action = "throws {thing} at {target}".format(
-                    thing=thing,
-                    target=target
-                )
-                connection.action(source, action)
         else:
             connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
