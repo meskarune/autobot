@@ -12,9 +12,11 @@ personal use. Then run the bot with ```python autobot.py```
 
 To-do:
 
+* encrypt nick password so it isn't plaintext in the config
 * SASL auth
 * CertFP auth
 * Add logger
+    * log privmsg, notice, join, part, quit, topic, mode, renick, kick
 * Make modular so scripts can be loaded from a directory and be used by the bot
 
 Refactor irc channel OP check to loop through connected channels and check if the user has
