@@ -37,7 +37,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             self.logmessage("autobot", "info", "Joined channel %s" % (channel))
         if self.nickpass and connection.get_nickname() != self.nick:
             connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
-            self.logmessage("autobot", "nickserv", "Recovered nick")
+            self.logmessage("autobot", "info", "Recovered nick")
 
     def on_privnotice(self, connection, event):
         """Identify to nickserv and log privnotices"""
@@ -49,14 +49,16 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             if event.arguments[0].lower().find("identify") >= 0:
                 if self.nickpass and self.nick == connection.get_nickname():
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
-                    self.logmessage("autobot", "nickserv", "Identified to nickserv")
+                    self.logmessage("autobot", "info", "Identified to nickserv")
+
+    def on_pubnotice(self, connection, event):
+        self.logmessage(event.target, notice, event.source + ": " + event.arguments[0])
 
     def on_kick(self, connection, event):
         """Log kicked nicks and rejoin channels if bot is kicked"""
-        channel = event.target
         kickedNick = event.arguments[0]
         kicker = event.source.nick
-        self.logmessage(channel, "info", "%s was kicked from the channel by %s" % (kickedNick, kicker))
+        self.logmessage(event.target, "info", "%s was kicked from the channel by %s" % (kickedNick, kicker))
         if kickedNick == self.nick:
             time.sleep(10) #waits 10 seconds
             for channel in self.channel_list:
@@ -64,39 +66,38 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def on_quit(self, connection, event):
         """Log when users quit"""
-        nick = event.source.nick
-        host = event.source.host
-        for channel in self.channels.items():
+        nick = event.source
+        for channel in self.channel_list:
             if self.channels[channel].has_user(nick):
-                self.logmessage(channel, "info", "%s@%s has quit" % (nick, host))
+                self.logmessage(channel, "info", "%s has quit" % (nick))
 
     def on_join(self, connection, event):
         """Log channel joins"""
-        channel = event.target
-        nick = event.source.nick
-        host = event.source.host
-        self.logmessage(channel, "info", "%s@%s joined the channel" % (nick, host))
+        self.logmessage(event.target, "info", "%s joined the channel" % (event.source))
 
     def on_part(self, connection, event):
         """Log channel parts"""
-        channel = event.target
-        nick = event.source.nick
-        host = event.source.host
-        self.logmessage(channel, "info", "%s@%s left the channel" % (nick, host))
+        self.logmessage(event.target, "info", "%s left the channel" % (event.source))
 
     def on_nick(self, connection, event):
         """Log nick changes"""
-        nick = event.source.nick
+        nick = event.source
         newnick = event.target
-        host = event.source.host
-        self.logmessage("autobot", "info", "%s@%s changed their nick to %s" %(nick, host, newnick))
+        self.logmessage("autobot", "info", "%s changed their nick to %s" %(nick, newnick))
 
     def on_mode(self, connection, event):
         """Log mode changes"""
         channel = event.target
         mode = event.arguments[0]
+        #actiontarget = event.arguments[1]
         nick = event.source.nick
         self.logmessage(channel, "info", "mode changaed to %s by %s" % (mode, nick))
+
+    def on_topic(self, connection, event):
+        oldtopic = test
+        newtopic = testing
+        nick = event.source.nick
+        self.logmessage(event.target, "topic changed", "topic changed from %s to %s by %s" % (oldtopic, newtopic, nick)
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
@@ -136,7 +137,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         elif command == "slap":
             connection.action(source, "slaps " + user + " around a bit with a large trout")
         elif command == "help":
-            connection.privmsg(source, "Available commands: ![hello, goodbye,"
+            connection.privmsg(source, "Available commands: ![hello, goodbye, "
                                        "ugm, ugn, slap, disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
