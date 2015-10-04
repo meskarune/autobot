@@ -1,16 +1,32 @@
 autobot
 =======
 
-Python IRC bot
+A python IRC bot
 
-This is a simple python irc bot that uses the python-irc library
+This is a full featured python irc bot that uses the python-irc library
 
-Configuration:
+Features
+--------
+
+* Configuration options in a single config file
+* Joins a single irc server with support for SSL
+* Joins multiple channels
+* Listens on a port for messages and then announces the messages in IRC
+    * The port and host are set in the configuration file
+    * you can send a test message with "netcat host port" then type the message
+      and hit enter.
+* Identifies to nickserv
+* Rejoins channels on kick or disconnect
+* Has some basic commands that are listed with !help
+
+Configuration
+-------------
 
 Copy the autobot.conf.template to autobot.conf and update the settings for your
 personal use. Then run the bot with ```python autobot.py```
 
-To-do:
+To-do
+-----
 
 * encrypt nick password so it isn't plaintext in the config
 * SASL auth
