@@ -95,7 +95,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log mode changes"""
         channel = event.target
         mode = event.arguments[0]
-        self.logmessage(channel, "info", "mode changaed to %s" % (mode))
+        nick = event.source.nick
+        self.logmessage(channel, "info", "mode changaed to %s by %s" % (mode, nick))
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
