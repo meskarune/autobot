@@ -66,7 +66,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log when users quit"""
         nick = event.source.nick
         host = event.source.host
-        for channel in self.channel_list:
+        for channel in self.channels.items():
             if self.channels[channel].has_user(nick):
                 self.logmessage(channel, "info", "%s@%s has quit" % (nick, host))
 
@@ -93,6 +93,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def on_mode(self, connection, event):
         """Log mode changes"""
+        channel = event.target
+        mode = event.arguments[0]
+        self.logmessage(channel, "info", "mode changaed to %s" % (mode))
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
