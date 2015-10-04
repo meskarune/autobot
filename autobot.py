@@ -57,10 +57,16 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             for channel in self.channel_list:
                 connection.join(channel)
 
+    def on_quit(self, connection, event):
+        channel = event.target
+        nick = event.source.nick
+        self.logmessage(channel, "info", "%s has quit" % (nick))
+
     def on_join(self, connection, event):
         channel = event.target
         nick = event.source.nick
-        self.logmessage(channel, "info", "%s joined the channel" % (nick))
+        host = event.source.host
+        self.logmessage(channel, "info", "%s@%s joined the channel" % (nick,host))
 
     def on_part(self, connection, event):
         channel = event.target
