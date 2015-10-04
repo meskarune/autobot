@@ -52,7 +52,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                     self.logmessage("autobot", "info", "Identified to nickserv")
 
     def on_pubnotice(self, connection, event):
-        self.logmessage(event.target, notice, event.source + ": " + event.arguments[0])
+        self.logmessage(event.target, "notice", event.source + ": " + event.arguments[0])
 
     def on_kick(self, connection, event):
         """Log kicked nicks and rejoin channels if bot is kicked"""
@@ -93,11 +93,12 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         nick = event.source.nick
         self.logmessage(channel, "info", "mode changaed to %s by %s" % (mode, nick))
 
-    def on_topic(self, connection, event):
-        oldtopic = test
-        newtopic = testing
-        nick = event.source.nick
-        self.logmessage(event.target, "topic changed", "topic changed from %s to %s by %s" % (oldtopic, newtopic, nick)
+    #def on_topic(self, connection, event):
+    #    """Log topic changes"""
+    #    oldtopic = test
+    #    newtopic = testing
+    #    nick = event.source.nick
+    #    self.logmessage(event.target, "topic changed", "topic changed from %s to %s by %s" % (oldtopic, newtopic, nick)
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""

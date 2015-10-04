@@ -16,7 +16,16 @@ To-do:
 * SASL auth
 * CertFP auth
 * Add logger
-    * log privmsg, notice, join, part, quit, topic, mode, renick, kick
+    * Log Kick - done
+    * Log Join/Part - done
+    * *Log nick changes* - logs but saves to autobot.log , need to check all
+      channels
+    * *Log topic changes*
+    * Log privmsg - done
+    * Log pubmsg - done
+    * Log public and private notice - done
+    * *Log mode changes* - logs but does not have complete information for +q +b
+    * *Log quit* - need to check over all channels
 * Make modular so scripts can be loaded from a directory and be used by the bot
 
 Refactor irc channel OP check to loop through connected channels and check if the user has
