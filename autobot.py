@@ -50,9 +50,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
                     self.logmessage("autobot", "nickserv", "Identified to nickserv")
 
-    #def on_disconnect(self, connection, event):
-        #wait 60 seconds and try to reconnect? or exit?
-
     def on_kick(self, connection, event):
         """Log kicked nicks and rejoin channels if bot is kicked"""
         channel = event.target
