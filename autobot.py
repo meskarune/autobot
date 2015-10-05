@@ -93,10 +93,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
     def on_mode(self, connection, event):
         """Log mode changes"""
         channel = event.target
-        mode = event.arguments[0]
-        test = event.source
+        mode = " ".join(event.arguments)
         nick = event.source.nick
-        self.logmessage(channel, "info", "mode changaed to %s by %s test: %s" % (mode, nick, test))
+        self.logmessage(channel, "info", "mode changed to %s by %s" % (mode, nick))
 
     #def on_topic(self, connection, event):
     #    """Log topic changes"""
