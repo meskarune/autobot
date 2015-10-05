@@ -95,7 +95,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def on_topic(self, connection, event):
         """Log topic changes"""
-        self.logmessage(event.target, "info", "topic changed to %s by %s" % (event.arguments[0], event.source.nick)
+        self.logmessage(event.target, "info", 'topic changed to "%s" by %s' % (event.arguments[0], event.source.nick))
 
     def urlannounce(self, url, source):
         """Say Website Title information in channel"""
