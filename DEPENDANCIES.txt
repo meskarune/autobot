@@ -1,0 +1,3 @@
+python-irclib
+python-beautifulsoup4
+python-urllib3

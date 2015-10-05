@@ -5,6 +5,8 @@
 import configparser, socket, ssl, time, datetime
 import select
 import irc.bot
+import urllib.request
+from bs4 import BeautifulSoup
 from threading import Thread
 
 # Create our bot class
@@ -38,6 +40,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         if self.nickpass and connection.get_nickname() != self.nick:
             connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
             self.logmessage("autobot", "info", "Recovered nick")
+
+    def get_version(self):
+        return "AUTOBOT IRC BOT" #CTCP VERSION reply
 
     def on_privnotice(self, connection, event):
         """Identify to nickserv and log privnotices"""
@@ -89,9 +94,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log mode changes"""
         channel = event.target
         mode = event.arguments[0]
-        #actiontarget = event.arguments[1]
+        test = event.source
         nick = event.source.nick
-        self.logmessage(channel, "info", "mode changaed to %s by %s" % (mode, nick))
+        self.logmessage(channel, "info", "mode changaed to %s by %s test: %s" % (mode, nick, test))
 
     #def on_topic(self, connection, event):
     #    """Log topic changes"""
@@ -100,17 +105,37 @@ class AutoBot(irc.bot.SingleServerIRCBot):
     #    nick = event.source.nick
     #    self.logmessage(event.target, "topic changed", "topic changed from %s to %s by %s" % (oldtopic, newtopic, nick)
 
+    def urlannounce(self, url, source):
+        """Say Website Title information in channel"""
+        try:
+            getURL = urllib.request.urlopen(url)
+        except:
+            return
+
+        parseURL = BeautifulSoup(getURL, "html.parser")
+        title = parseURL.title.string
+        if not title == "":
+            self.connection.privmsg(source, title)
+
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
         channel = event.target
         nick = event.source.nick
         message = event.arguments[0]
         self.logmessage(channel, nick, message)
+
+        if ("http://" in message or "https://" in message): #urllib only accepts http or https
+            messageList = message.split(' ')
+            for element in messageList:
+                if element.startswith(("http://","https://"),):
+                    self.urlannounce(element, channel)
+
         if message.startswith("!"):
             if self.channels[channel].is_oper(nick):
                 self.do_command(event, True, channel, message.lstrip("!").lower())
             else:
                 self.do_command(event, False, channel, message.lstrip("!").lower())
+
         if message.startswith(self.nick):
             connection.privmsg(channel, "hello " + nick + ", I am a bot.")
 
