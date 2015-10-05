@@ -19,6 +19,12 @@ Features
 * Rejoins channels on kick or disconnect
 * Has some basic commands that are listed with !help
 
+Installation
+------------
+
+Autobot uses python and the python libraries irclib, urllib and beautifulsoup.
+Once these are installed you should be able to just run it.
+
 Configuration
 -------------
 
@@ -40,9 +46,11 @@ To-do
     * Log privmsg - done
     * Log pubmsg - done
     * Log public and private notice - done
-    * *Log mode changes* - logs but does not have complete information for +q +b
+    * Log mode changes - done
     * *Log quit* - need to check over all channels
 * Make modular so scripts can be loaded from a directory and be used by the bot
+* Create Stable branch
+* Fix up url title announcements
 
 Refactor irc channel OP check to loop through connected channels and check if the user has
 OPs in any of them, if yes, then isOper is True - maybe should skip this and just have a mod list in configuration?
