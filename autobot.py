@@ -74,13 +74,15 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log when users quit"""
         nick = event.source
         self.logmessage("autobot", "info", "%s has quit" % (nick))
-        for channel in self.channels:
-            if self.channels[channel].has_user(nick):
-                self.logmessage(channel, "info", "%s has quit" % (nick))
+        #for channel in self.channels:
+        #    if self.channels[channel].has_user(nick):
+        #        self.logmessage(channel, "info", "%s has quit" % (nick))
 
     def on_join(self, connection, event):
         """Log channel joins"""
         self.logmessage(event.target, "info", "%s joined the channel" % (event.source))
+        if event.source.nick == self.nick:
+            connection.privmsg(event.target, "Autobots, roll out!")
 
     def on_part(self, connection, event):
         """Log channel parts"""
