@@ -42,7 +42,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             self.logmessage("autobot", "info", "Recovered nick")
 
     def get_version(self):
-        return "AUTOBOT IRC BOT" #CTCP VERSION reply
+        """CTCP version reply"""
+        return "AUTOBOT IRC BOT"
 
     def on_privnotice(self, connection, event):
         """Identify to nickserv and log privnotices"""
@@ -72,7 +73,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
     def on_quit(self, connection, event):
         """Log when users quit"""
         nick = event.source
-        for channel in self.channel_list:
+        self.logmessage("autobot", "info", "%s has quit" % (nick))
+        for channel in self.channels:
             if self.channels[channel].has_user(nick):
                 self.logmessage(channel, "info", "%s has quit" % (nick))
 
@@ -86,7 +88,12 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def on_nick(self, connection, event):
         """Log nick changes"""
-        self.logmessage("autobot", "info", "%s changed their nick to %s" % (event.source, event.target))
+        oldNick = event.source.nick
+        newNick = event.target
+        self.logmessage("autobot", "info", "%s changed their nick to %s" % (event.source, newNick))
+        for channel in self.channels.values():
+            if channel.has_user(newNick):
+                self.logmessage(channel, "info", "%s changed their nick to %s" % (event.source, newNick))
 
     def on_mode(self, connection, event):
         """Log mode changes"""
