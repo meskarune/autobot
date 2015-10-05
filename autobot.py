@@ -92,8 +92,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         newNick = event.target
         self.logmessage("autobot", "info", "%s changed their nick to %s" % (event.source, newNick))
         for channel in self.channels.values():
-            if channel.has_user(newNick):
-                self.logmessage(channel, "info", "%s changed their nick to %s" % (event.source, newNick))
+            if channel.has_user(oldNick):
+                self.logmessage(str(channel), "info", "%s changed their nick to %s" % (event.source, newNick))
 
     def on_mode(self, connection, event):
         """Log mode changes"""
