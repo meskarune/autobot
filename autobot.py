@@ -86,23 +86,16 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def on_nick(self, connection, event):
         """Log nick changes"""
-        nick = event.source
-        newnick = event.target
-        self.logmessage("autobot", "info", "%s changed their nick to %s" %(nick, newnick))
+        self.logmessage("autobot", "info", "%s changed their nick to %s" % (event.source, event.target))
 
     def on_mode(self, connection, event):
         """Log mode changes"""
-        channel = event.target
         mode = " ".join(event.arguments)
-        nick = event.source.nick
-        self.logmessage(channel, "info", "mode changed to %s by %s" % (mode, nick))
+        self.logmessage(event.target, "info", "mode changed to %s by %s" % (mode, event.source.nick))
 
-    #def on_topic(self, connection, event):
-    #    """Log topic changes"""
-    #    oldtopic = test
-    #    newtopic = testing
-    #    nick = event.source.nick
-    #    self.logmessage(event.target, "topic changed", "topic changed from %s to %s by %s" % (oldtopic, newtopic, nick)
+    def on_topic(self, connection, event):
+        """Log topic changes"""
+        self.logmessage(event.target, "info", "topic changed to %s by %s" % (event.arguments[0], event.source.nick)
 
     def urlannounce(self, url, source):
         """Say Website Title information in channel"""
