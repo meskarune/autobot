@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """A full featured python IRC bot"""
 
-import configparser, socket, ssl, time, datetime
+import configparser, sys, socket, ssl, time, datetime
 import select
 import irc.bot
 import urllib.request
@@ -24,6 +24,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.nick = nick
         self.channel_list = channels
         self.nickpass = nickpass
+
+        self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
         self.inputthread.start()
@@ -70,13 +72,11 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             for channel in self.channel_list:
                 connection.join(channel)
 
-    def on_quit(self, connection, event):
+    def alt_on_quit(self, connection, event):
         """Log when users quit"""
-        nick = event.source
-        self.logmessage("autobot", "info", "%s has quit" % (nick))
-        #for channel in self.channels:
-        #    if self.channels[channel].has_user(nick):
-        #        self.logmessage(channel, "info", "%s has quit" % (nick))
+        for channel in self.channels:
+            if self.channels[channel].has_user(event.source.nick):
+                self.logmessage(channel, "info", "%s has quit" % (event.source))
 
     def on_join(self, connection, event):
         """Log channel joins"""
@@ -108,14 +108,17 @@ class AutoBot(irc.bot.SingleServerIRCBot):
     def urlannounce(self, url, source):
         """Say Website Title information in channel"""
         try:
-            getURL = urllib.request.urlopen(url)
-        except:
+            URL = BeautifulSoup(urllib.request.urlopen(url), "html.parser")
+        except urllib.HTTPError as e:
+            sys.stderr.write("HTTPError when fetching %s : %s\n" % (e.url, e))
             return
-
-        parseURL = BeautifulSoup(getURL, "html.parser")
-        title = parseURL.title.string
-        if not title == "":
-            self.connection.privmsg(source, title)
+        if not URL.title:
+            return
+        if len(URL.title.string) > 250:
+            title=URL.title.string[0:250] + '…'
+        else:
+            title=URL.title.string
+            self.connection.privmsg(source, title.replace('\n', ' ').strip())
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
@@ -182,6 +185,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Send notice to joined channels"""
         for channel in self.channel_list:
             connection.notice(channel, text)
+            logmessage(channel, "notice", connection.get_nickname() + ": " + text)
 
     def logmessage(self, channel, nick, message):
         """Create IRC logs"""
