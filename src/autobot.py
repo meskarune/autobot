@@ -62,6 +62,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
                     self.logmessage("autobot", "info", "Identified to nickserv")
 
+    #def on_disconnect(self, connection, event):
+
+
     def on_pubnotice(self, connection, event):
         self.logmessage(event.target, "notice", event.source + ": " + event.arguments[0])
 
@@ -114,15 +117,20 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         baseurl = '{uri.scheme}://{uri.netloc}'.format(uri=urlsplit(url))
         path = urlsplit(url).path
         query = '?{uri.query}'.format(uri=urlsplit(url))
-        parsedurl = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?')
-        # if the whole url doesn't return something useful, try the base url
+        try:
+            parsedurl = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?')
+        except:
+            return
         try:
             request = Request(parsedurl)
             request.add_header('Accept-Encoding', 'utf-8')
             request.add_header('User-Agent', 'Mozilla/5.0')
             response = urlopen(request)
+        except:
+            return
+        # if the whole url doesn't return something useful, try the base url
+        try:
             URL = BeautifulSoup(response.read(), "html.parser")
-            #URL = BeautifulSoup(urlopen(parsedurl.decode('utf-8')).read(), "html.parser")
         except URLError as e:
             sys.stderr.write("Error when fetching " + url + ": %s\n" % (e))
             return
@@ -134,7 +142,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             title=URL.title.string[0:250] + '…'
         else:
             title=URL.title.string
-        self.connection.privmsg(source, title.replace('\n', ' ').strip() + " (" + url + ")")
+        self.connection.privmsg(source, title.replace('\n', ' ').strip() + " (" + baseurl + ")")
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
