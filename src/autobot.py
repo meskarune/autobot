@@ -5,7 +5,10 @@
 import configparser, sys, socket, ssl, time, datetime, re
 import select
 import irc.bot
-import urllib.request
+import encodings
+from urllib.request import urlopen
+from urllib.parse   import quote, urlsplit
+from urllib.error import URLError
 from bs4 import BeautifulSoup
 from threading import Thread
 
@@ -107,9 +110,15 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def urlannounce(self, url, source):
         """Say Website Title information in channel"""
+        baseurl = urlsplit(url).netloc
+        path = urlsplit(url).path
+        query = urlsplit(url).query
+        parsedurl = baseurl.encode("idna") + quote(path + query)
+        # if the whole url doesn't return something useful, try the base url
+        # only
         try:
-            URL = BeautifulSoup(urllib.request.urlopen(url), "html.parser")
-        except urllib.error.URLError as e:
+            URL = BeautifulSoup(urlopen(parsedurl.read(), "html.parser")
+        except URLError as e:
             sys.stderr.write("Error when fetching " + url + ": %s\n" % (e))
             return
         if not URL.title:
@@ -129,13 +138,19 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         message = event.arguments[0]
         self.logmessage(channel, nick, message)
 
-        URLregex = re.compile(r'/^https?://.*[^>< ]/', re.IGNORECASE)
+        URLregex = re.compile(
+            r'(?i)\b((?:https?://|[a-z0-9.\-]+[.][a-z]{2,4}/)'
+            r'(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))'
+            r'+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|'
+            r'''[^\s`!()\[\]{};:'".,<>?«»“”‘’]))''', re.IGNORECASE)
+
+        #URLregex = re.compile(r'https?://.*[^>< ]', re.IGNORECASE)
 
         if URLregex.search(message):
             messageList = message.split(' ')
             for element in messageList:
                 if URLregex.search(element):
-                    self.urlannounce(element.group(0).strip(), channel)
+                    self.urlannounce(element, channel)
 
         if message.startswith("!"):
             if self.channels[channel].is_oper(nick):
