@@ -6,7 +6,7 @@ import configparser, sys, socket, ssl, time, datetime, re
 import select
 import irc.bot
 import encodings
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from urllib.parse   import quote, urlsplit
 from urllib.error import URLError
 from bs4 import BeautifulSoup
@@ -110,14 +110,19 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def urlannounce(self, url, source):
         """Say Website Title information in channel"""
-        baseurl = urlsplit(url).netloc
+
+        baseurl = '{uri.scheme}://{uri.netloc}'.format(uri=urlsplit(url))
         path = urlsplit(url).path
-        query = urlsplit(url).query
-        parsedurl = baseurl.encode("idna") + quote(path + query)
+        query = '?{uri.query}'.format(uri=urlsplit(url))
+        parsedurl = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?')
         # if the whole url doesn't return something useful, try the base url
-        # only
         try:
-            URL = BeautifulSoup(urlopen(parsedurl.read(), "html.parser")
+            request = Request(parsedurl)
+            request.add_header('Accept-Encoding', 'utf-8')
+            request.add_header('User-Agent', 'Mozilla/5.0')
+            response = urlopen(request)
+            URL = BeautifulSoup(response.read(), "html.parser")
+            #URL = BeautifulSoup(urlopen(parsedurl.decode('utf-8')).read(), "html.parser")
         except URLError as e:
             sys.stderr.write("Error when fetching " + url + ": %s\n" % (e))
             return
@@ -144,12 +149,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             r'+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|'
             r'''[^\s`!()\[\]{};:'".,<>?«»“”‘’]))''', re.IGNORECASE)
 
-        #URLregex = re.compile(r'https?://.*[^>< ]', re.IGNORECASE)
-
         if URLregex.search(message):
             messageList = message.split(' ')
             for element in messageList:
-                if URLregex.search(element):
+                if URLregex.match(element):
                     self.urlannounce(element, channel)
 
         if message.startswith("!"):
