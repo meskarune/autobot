@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """A full featured python IRC bot"""
 
-import configparser, sys, socket, ssl, time, datetime
+import configparser, sys, socket, ssl, time, datetime, re
 import select
 import irc.bot
 import urllib.request
@@ -109,16 +109,18 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Say Website Title information in channel"""
         try:
             URL = BeautifulSoup(urllib.request.urlopen(url), "html.parser")
-        except urllib.HTTPError as e:
-            sys.stderr.write("HTTPError when fetching %s : %s\n" % (e.url, e))
+        except urllib.error.URLError as e:
+            sys.stderr.write("Error when fetching " + url + ": %s\n" % (e))
             return
         if not URL.title:
+            return
+        if URL.title.string is None:
             return
         if len(URL.title.string) > 250:
             title=URL.title.string[0:250] + '…'
         else:
             title=URL.title.string
-            self.connection.privmsg(source, title.replace('\n', ' ').strip())
+        self.connection.privmsg(source, title.replace('\n', ' ').strip() + " (" + url + ")")
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
@@ -127,11 +129,13 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         message = event.arguments[0]
         self.logmessage(channel, nick, message)
 
-        if ("http://" in message or "https://" in message): #urllib only accepts http or https
+        URLregex = re.compile(r'/^https?://.*[^>< ]/', re.IGNORECASE)
+
+        if URLregex.search(message):
             messageList = message.split(' ')
             for element in messageList:
-                if element.startswith(("http://","https://"),):
-                    self.urlannounce(element, channel)
+                if URLregex.search(element):
+                    self.urlannounce(element.group(0).strip(), channel)
 
         if message.startswith("!"):
             if self.channels[channel].is_oper(nick):
