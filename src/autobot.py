@@ -117,18 +117,21 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         baseurl = '{uri.scheme}://{uri.netloc}'.format(uri=urlsplit(url))
         path = urlsplit(url).path
         query = '?{uri.query}'.format(uri=urlsplit(url))
+
         try:
-            parsedurl = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?')
+            if urlopen(url).getcode() == 200:
+                parsedurl = baseurl.encode("inda").decode("idna") + path + query
+            else:
+                parsedurl = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?.')
         except:
             return
         try:
-            request = Request(parsedurl)
+            request = Request(parseurl)
             request.add_header('Accept-Encoding', 'utf-8')
             request.add_header('User-Agent', 'Mozilla/5.0')
             response = urlopen(request)
         except:
             return
-        # if the whole url doesn't return something useful, try the base url
         try:
             URL = BeautifulSoup(response.read(), "html.parser")
         except URLError as e:
