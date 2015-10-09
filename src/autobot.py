@@ -6,6 +6,7 @@ import configparser, sys, socket, ssl, time, datetime, re
 import select
 import irc.bot
 import encodings
+import codecs
 from urllib.request import urlopen, Request
 from urllib.parse   import quote, urlsplit
 from urllib.error import URLError
@@ -113,20 +114,16 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def urlannounce(self, url, source):
         """Say Website Title information in channel"""
-
+        #if urlopen(url).getcode() == 200:
         baseurl = '{uri.scheme}://{uri.netloc}'.format(uri=urlsplit(url))
         path = urlsplit(url).path
         query = '?{uri.query}'.format(uri=urlsplit(url))
-
         try:
-            if urlopen(url).getcode() == 200:
-                parsedurl = baseurl.encode("inda").decode("idna") + path + query
-            else:
-                parsedurl = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?.')
+            parsedurl = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?')
         except:
             return
         try:
-            request = Request(parseurl)
+            request = Request(parsedurl)
             request.add_header('Accept-Encoding', 'utf-8')
             request.add_header('User-Agent', 'Mozilla/5.0')
             response = urlopen(request)
@@ -145,7 +142,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             title=URL.title.string[0:250] + '…'
         else:
             title=URL.title.string
-        self.connection.privmsg(source, title.replace('\n', ' ').strip() + " (" + baseurl + ")")
+        self.connection.privmsg(source, title.replace('\n', ' ').strip() + " (" + urlsplit(url).netloc + ")")
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
@@ -181,8 +178,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         nick = event.source.nick
         message = event.arguments[0]
         self.logmessage(channel, nick, message)
-        if event.arguments[0].startswith("!"):
-            self.do_command(event, False, nick, message.lstrip("!").lower())
+        self.do_command(event, False, nick, message)
 
     def do_command(self, event, isOper, source, command):
         """Commands the bot will respond to"""
@@ -198,9 +194,16 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             connection.privmsg(source, "good (UGT) night to all from " + user)
         elif command == "slap":
             connection.action(source, "slaps " + user + " around a bit with a large trout")
+        elif command.startswith("rot13 "):
+            if event.arguments[0].partition(' ')[2] == '':
+                connection.privmsg(source, '''I'm sorry, I need a message to cipher, try "!rot13 message"''')
+            else:
+                msgcipher = event.arguments[0].partition(' ')[2]
+                connection.privmsg(source, codecs.encode(msgcipher, 'rot13'))
         elif command == "help":
             connection.privmsg(source, "Available commands: ![hello, goodbye, "
-                                       "ugm, ugn, slap, disconnect, die, help]")
+                                       "ugm, ugn, slap, rot13 <message>, "
+                                       "disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
