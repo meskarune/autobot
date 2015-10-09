@@ -34,6 +34,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
         self.inputthread.start()
 
+    def say(self, target, text):
+        self.connection.privmsg(target, text)
+
     def on_nicknameinuse(self, connection, event):
         """If the nick is in use, get nick_"""
         connection.nick(connection.get_nickname() + "_")
@@ -65,7 +68,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     #def on_disconnect(self, connection, event):
 
-
     def on_pubnotice(self, connection, event):
         self.logmessage(event.target, "notice", event.source + ": " + event.arguments[0])
 
@@ -89,7 +91,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log channel joins"""
         self.logmessage(event.target, "info", "%s joined the channel" % (event.source))
         if event.source.nick == self.nick:
-            connection.privmsg(event.target, "Autobots, roll out!")
+            self.say(event.target, "Autobots, roll out!")
 
     def on_part(self, connection, event):
         """Log channel parts"""
@@ -151,26 +153,29 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         message = event.arguments[0]
         self.logmessage(channel, nick, message)
 
-        URLregex = re.compile(
+        url_regex = re.compile(
             r'(?i)\b((?:https?://|[a-z0-9.\-]+[.][a-z]{2,4}/)'
             r'(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))'
             r'+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|'
             r'''[^\s`!()\[\]{};:'".,<>?«»“”‘’]))''', re.IGNORECASE)
 
-        if URLregex.search(message):
+        if url_regex.search(message):
             messageList = message.split(' ')
             for element in messageList:
-                if URLregex.match(element):
+                if url_regex.match(element):
                     self.urlannounce(element, channel)
 
-        if message.startswith("!"):
-            if self.channels[channel].is_oper(nick):
-                self.do_command(event, True, channel, message.lstrip("!").lower())
-            else:
-                self.do_command(event, False, channel, message.lstrip("!").lower())
+        command_regex = re.compile(
+            r'^(' + re.escape(self.nick) + '( |[:,] ?)|'
+            r'!)'
+            r'(.*$)', re.IGNORECASE)
 
-        if message.startswith(self.nick):
-            connection.privmsg(channel, "hello " + nick + ", I am a bot.")
+        if command_regex.match(message):
+            command = command_regex.match(message).group(3)
+            if self.channels[channel].is_oper(nick):
+                self.do_command(event, True, channel, command)
+            else:
+                self.do_command(event, False, channel, command)
 
     def on_privmsg(self, connection, event):
         """Log private messages and respond to command requests"""
@@ -184,6 +189,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Commands the bot will respond to"""
         user = event.source.nick
         connection = self.connection
+        message = event.arguments[0]
         if command == "hello":
             connection.privmsg(source, "hello " + user)
         elif command == "goodbye":
@@ -194,12 +200,11 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             connection.privmsg(source, "good (UGT) night to all from " + user)
         elif command == "slap":
             connection.action(source, "slaps " + user + " around a bit with a large trout")
-        elif command.startswith("rot13 "):
-            if event.arguments[0].partition(' ')[2] == '':
-                connection.privmsg(source, '''I'm sorry, I need a message to cipher, try "!rot13 message"''')
+        elif command.startswith("rot13"):
+            if all(message.partition(' ')) and message.partition(' ')[0] == "!rot13":
+                connection.privmsg(source, codecs.encode(message.partition(' ')[2], 'rot13'))
             else:
-                msgcipher = event.arguments[0].partition(' ')[2]
-                connection.privmsg(source, codecs.encode(msgcipher, 'rot13'))
+                connection.privmsg(source, "I'm sorry, I need a message to cipher, try \"!rot13 message\"")
         elif command == "help":
             connection.privmsg(source, "Available commands: ![hello, goodbye, "
                                        "ugm, ugn, slap, rot13 <message>, "
