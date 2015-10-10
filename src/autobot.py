@@ -5,13 +5,9 @@
 import configparser, sys, socket, ssl, time, datetime, re
 import select
 import irc.bot
-import encodings
 import codecs
-from urllib.request import urlopen, Request
-from urllib.parse   import quote, urlsplit
-from urllib.error import URLError
-from bs4 import BeautifulSoup
 from threading import Thread
+from plugins.passive import url_announce
 
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
@@ -47,7 +43,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             connection.join(channel)
             self.logmessage("autobot", "info", "Joined channel %s" % (channel))
         if self.nickpass and connection.get_nickname() != self.nick:
-            connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
+            self.say("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
             self.logmessage("autobot", "info", "Recovered nick")
 
     def get_version(self):
@@ -63,7 +59,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         if source and source.lower() == "nickserv":
             if event.arguments[0].lower().find("identify") >= 0:
                 if self.nickpass and self.nick == connection.get_nickname():
-                    connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
+                    self.say("nickserv", "identify %s %s" % (self.nick, self.nickpass))
                     self.logmessage("autobot", "info", "Identified to nickserv")
 
     #def on_disconnect(self, connection, event):
@@ -114,38 +110,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log topic changes"""
         self.logmessage(event.target, "info", 'topic changed to "%s" by %s' % (event.arguments[0], event.source.nick))
 
-    def urlannounce(self, url, source):
-        """Say Website Title information in channel"""
-        #if urlopen(url).getcode() == 200:
-        baseurl = '{uri.scheme}://{uri.netloc}'.format(uri=urlsplit(url))
-        path = urlsplit(url).path
-        query = '?{uri.query}'.format(uri=urlsplit(url))
-        try:
-            parsedurl = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?')
-        except:
-            return
-        try:
-            request = Request(parsedurl)
-            request.add_header('Accept-Encoding', 'utf-8')
-            request.add_header('User-Agent', 'Mozilla/5.0')
-            response = urlopen(request)
-        except:
-            return
-        try:
-            URL = BeautifulSoup(response.read(), "html.parser")
-        except URLError as e:
-            sys.stderr.write("Error when fetching " + url + ": %s\n" % (e))
-            return
-        if not URL.title:
-            return
-        if URL.title.string is None:
-            return
-        if len(URL.title.string) > 250:
-            title=URL.title.string[0:250] + '…'
-        else:
-            title=URL.title.string
-        self.connection.privmsg(source, title.replace('\n', ' ').strip() + " (" + urlsplit(url).netloc + ")")
-
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
         channel = event.target
@@ -163,7 +127,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             messageList = message.split(' ')
             for element in messageList:
                 if url_regex.match(element):
-                    self.urlannounce(element, channel)
+                    title = url_announce.parse_url(element)
+                    self.say(channel, title)
 
         command_regex = re.compile(
             r'^(' + re.escape(self.nick) + '( |[:,] ?)|'
