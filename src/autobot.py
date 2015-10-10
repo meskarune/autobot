@@ -33,7 +33,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def say(self, target, text):
         self.connection.privmsg(target, text)
-        #self.logmessage(target, self.nick, text)
+        self.logmessage(target, self.nick, text)
 
     def on_nicknameinuse(self, connection, event):
         """If the nick is in use, get nick_"""
@@ -45,7 +45,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             connection.join(channel)
             self.logmessage("autobot", "info", "Joined channel %s" % (channel))
         if self.nickpass and connection.get_nickname() != self.nick:
-            self.say("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
+            connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
             self.logmessage("autobot", "info", "Recovered nick")
 
     def get_version(self):
@@ -61,7 +61,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         if source and source.lower() == "nickserv":
             if event.arguments[0].lower().find("identify") >= 0:
                 if self.nickpass and self.nick == connection.get_nickname():
-                    self.say("nickserv", "identify %s %s" % (self.nick, self.nickpass))
+                    connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
                     self.logmessage("autobot", "info", "Identified to nickserv")
 
     #def on_disconnect(self, connection, event):
@@ -130,7 +130,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             for element in messageList:
                 if url_regex.match(element):
                     title = url_announce.parse_url(element)
-                    self.say(channel, title)
+                    if title is not None:
+                        self.say(channel, title)
 
         command_regex = re.compile(
             r'^(' + re.escape(self.nick) + '( |[:,] ?)'
@@ -199,7 +200,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Send notice to joined channels"""
         for channel in self.channel_list:
             connection.notice(channel, text)
-            logmessage(channel, "notice", connection.get_nickname() + ": " + text)
+            self.logmessage(channel, "notice", connection.get_nickname() + ": " + text)
 
     def logmessage(self, channel, nick, message):
         """Create IRC logs"""
