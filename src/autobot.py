@@ -12,7 +12,7 @@ from plugins.passive import url_announce
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
     """Create the single server irc bot"""
-    def __init__(self, nick, name, nickpass, channels, network, listenhost, listenport, port=6667, usessl=False):
+    def __init__(self, nick, name, nickpass, prefix, channels, network, listenhost, listenport, port=6667, usessl=False):
         """Connect to the IRC server"""
         if usessl:
             factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
@@ -24,6 +24,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.nick = nick
         self.channel_list = channels
         self.nickpass = nickpass
+        self.prefix = prefix
 
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
@@ -32,6 +33,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def say(self, target, text):
         self.connection.privmsg(target, text)
+        #self.logmessage(target, self.nick, text)
 
     def on_nicknameinuse(self, connection, event):
         """If the nick is in use, get nick_"""
@@ -131,16 +133,17 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                     self.say(channel, title)
 
         command_regex = re.compile(
-            r'^(' + re.escape(self.nick) + '( |[:,] ?)|'
-            r'!)'
-            r'(.*$)', re.IGNORECASE)
+            r'^(' + re.escape(self.nick) + '( |[:,] ?)'
+            r'|' + re.escape(self.prefix) + ')'
+            r'([^ ]*)( (.*))?$', re.IGNORECASE)
 
         if command_regex.match(message):
             command = command_regex.match(message).group(3)
+            arguments = command_regex.match(message).group(5)
             if self.channels[channel].is_oper(nick):
-                self.do_command(event, True, channel, command)
+                self.do_command(event, True, channel, command, arguments)
             else:
-                self.do_command(event, False, channel, command)
+                self.do_command(event, False, channel, command, arguments)
 
     def on_privmsg(self, connection, event):
         """Log private messages and respond to command requests"""
@@ -148,9 +151,14 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         nick = event.source.nick
         message = event.arguments[0]
         self.logmessage(channel, nick, message)
-        self.do_command(event, False, nick, message)
+        command = message.partition(' ')[0]
+        arguments = message.partition(' ')[2]
+        if arguments == '':
+            self.do_command(event, False, nick, command, None)
+        else:
+            self.do_command(event, False, nick, command, arguments)
 
-    def do_command(self, event, isOper, source, command):
+    def do_command(self, event, isOper, source, command, arguments):
         """Commands the bot will respond to"""
         user = event.source.nick
         connection = self.connection
@@ -165,11 +173,11 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             self.say(source, "good (UGT) night to all from " + user)
         elif command == "slap":
             connection.action(source, "slaps " + user + " around a bit with a large trout")
-        elif command.startswith("rot13"):
-            if all(message.partition(' ')) and message.partition(' ')[0] == "!rot13":
-                self.say(source, codecs.encode(message.partition(' ')[2], 'rot13'))
-            else:
+        elif command == "rot13":
+            if arguments is None:
                 self.say(source, "I'm sorry, I need a message to cipher, try \"!rot13 message\"")
+            else:
+                self.say(source, codecs.encode(arguments, 'rot13'))
         elif command == "help":
             self.say(source, "Available commands: ![hello, goodbye, "
                                        "ugm, ugn, slap, rot13 <message>, "
@@ -250,11 +258,9 @@ def main():
     name = config.get("irc", "name")
     listenhost = config.get("tcp", "host")
     listenport = int(config.get("tcp", "port"))
+    prefix = config.get("bot", "prefix")
 
-    #FORMAT = '%(asctime)-15s %(clientip)s %(user)-8s %(message)s'
-    #logging.basicConfig(format=FORMAT)
-
-    bot = AutoBot(nick, name, nickpass, channels, network, listenhost, listenport, port, _ssl)
+    bot = AutoBot(nick, name, nickpass, prefix, channels, network, listenhost, listenport, port, _ssl)
     bot.start()
 
 if __name__ == "__main__":
