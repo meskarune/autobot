@@ -156,34 +156,34 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         connection = self.connection
         message = event.arguments[0]
         if command == "hello":
-            connection.privmsg(source, "hello " + user)
+            self.say(source, "hello " + user)
         elif command == "goodbye":
-            connection.privmsg(source, "goodbye " + user)
+            self.say(source, "goodbye " + user)
         elif command == "ugm":
-            connection.privmsg(source, "good (UGT) morning to all from " + user)
+            self.say(source, "good (UGT) morning to all from " + user)
         elif command == "ugn":
-            connection.privmsg(source, "good (UGT) night to all from " + user)
+            self.say(source, "good (UGT) night to all from " + user)
         elif command == "slap":
             connection.action(source, "slaps " + user + " around a bit with a large trout")
         elif command.startswith("rot13"):
             if all(message.partition(' ')) and message.partition(' ')[0] == "!rot13":
-                connection.privmsg(source, codecs.encode(message.partition(' ')[2], 'rot13'))
+                self.say(source, codecs.encode(message.partition(' ')[2], 'rot13'))
             else:
-                connection.privmsg(source, "I'm sorry, I need a message to cipher, try \"!rot13 message\"")
+                self.say(source, "I'm sorry, I need a message to cipher, try \"!rot13 message\"")
         elif command == "help":
-            connection.privmsg(source, "Available commands: ![hello, goodbye, "
+            self.say(source, "Available commands: ![hello, goodbye, "
                                        "ugm, ugn, slap, rot13 <message>, "
                                        "disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
             else:
-                connection.privmsg(source, "You don't have permission to do that")
+                self.say(source, "You don't have permission to do that")
         elif command == "die":
             if isOper:
                 self.die(msg="Bye, cruel world!")
             else:
-                connection.privmsg(source, "You don't have permission to do that")
+                self.say(source, "You don't have permission to do that")
         else:
             connection.notice(user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
