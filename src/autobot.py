@@ -2,12 +2,20 @@
 # -*- coding: utf-8 -*-
 """A full featured python IRC bot"""
 
-import configparser, sys, socket, ssl, time, datetime, re
+import configparser
+import sys
+import socket
+import ssl
+import time
+import datetime
+import re
 import select
 import irc.bot
 import codecs
+import os
 from threading import Thread
 from plugins.passive import url_announce
+
 
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
@@ -148,10 +156,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def on_privmsg(self, connection, event):
         """Log private messages and respond to command requests"""
-        channel = event.target
         nick = event.source.nick
         message = event.arguments[0]
-        self.logmessage(channel, nick, message)
+        self.logmessage(nick, nick, message)
         command = message.partition(' ')[0]
         arguments = message.partition(' ')[2]
         if arguments == '':
@@ -205,8 +212,21 @@ class AutoBot(irc.bot.SingleServerIRCBot):
     def logmessage(self, channel, nick, message):
         """Create IRC logs"""
         timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        with open(channel + '.log', 'a') as log:
-            log.write("%s <%s> %s\n" % (timestamp, nick, message))
+
+        log_path = "/home/meskarune/git/meskarune/autobot/src/logs/" + channel
+        log_name = datetime.datetime.utcnow().strftime("%Y-%m-") + channel + ".log"
+        log_file = log_path + "/" + log_name
+
+        if os.path.exists(log_file) == False:
+            try:
+                os.makedirs(os.path.dirname(log_file), exist_ok=True)
+            except OSError as e:
+                sys.stderr.write("Error when making log path for " + log_file + ": %s\n" % (e))
+            try:
+                with open(log_file, 'a') as log:
+                    log.write("%s <%s> %s\n" % (timestamp, nick, message))
+            except:
+                sys.stderr.write("Error writing to log " + log_name)
 
 class TCPinput(Thread):
     """Listen for data on a port and send it to Autobot.announce"""
