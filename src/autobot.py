@@ -213,8 +213,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Create IRC logs"""
         timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-        log_path = "/home/meskarune/git/meskarune/autobot/src/logs/" + channel
-        log_name = datetime.datetime.utcnow().strftime("%Y-%m-") + channel + ".log"
+        log_path = datetime.datetime.utcnow().strftime("./logs/%%s") % (channel)
+        log_name = datetime.datetime.utcnow().strftime("%Y-%m-%%s.log") % (channel)
         log_file = log_path + "/" + log_name
 
         if os.path.exists(log_file) == False:
