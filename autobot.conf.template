@@ -10,3 +10,13 @@ ssl = True
 [tcp]
 host: localhost
 port: 47998
+
+[bot]
+prefix = !
+log_path = "./logs/%%s"
+log_scheme = "%Y-%m-%%s.log"
+
+[plugins]
+commands = hello, goodbye, slap, ugt, rot13, throw
+OP_commands = die, disconect
+passive = url_announce
