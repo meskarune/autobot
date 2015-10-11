@@ -222,11 +222,11 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                 os.makedirs(os.path.dirname(log_file), exist_ok=True)
             except OSError as e:
                 sys.stderr.write("Error when making log path for " + log_file + ": %s\n" % (e))
-            try:
-                with open(log_file, 'a') as log:
-                    log.write("%s <%s> %s\n" % (timestamp, nick, message))
-            except:
-                sys.stderr.write("Error writing to log " + log_name)
+        try:
+            with open(log_file, 'a') as log:
+                log.write("%s <%s> %s\n" % (timestamp, nick, message))
+        except:
+            sys.stderr.write("Error writing to log " + log_name)
 
 class TCPinput(Thread):
     """Listen for data on a port and send it to Autobot.announce"""
