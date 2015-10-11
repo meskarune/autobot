@@ -18,6 +18,7 @@ Features
 * Identifies to nickserv
 * Rejoins channels on kick or disconnect
 * Has some basic commands that are listed with !help
+* Logs all channels and network notifications
 
 Installation
 ------------
@@ -37,20 +38,8 @@ To-do
 * encrypt nick password so it isn't plaintext in the config
 * SASL auth
 * CertFP auth
-* Add logger
-    * Log Kick - done
-    * Log Join/Part - done
-    * *Log nick changes* - logs but saves to autobot.log , need to check all
-      channels
-    * *Log topic changes*
-    * Log privmsg - done
-    * Log pubmsg - done
-    * Log public and private notice - done
-    * Log mode changes - done
-    * *Log quit* - need to check over all channels
 * Make modular so scripts can be loaded from a directory and be used by the bot
 * Create Stable branch
-* Fix up url title announcements
 
 Refactor irc channel OP check to loop through connected channels and check if the user has
 OPs in any of them, if yes, then isOper is True - maybe should skip this and just have a mod list in configuration?
