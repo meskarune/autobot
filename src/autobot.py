@@ -225,6 +225,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                 os.makedirs(os.path.dirname(log_file), exist_ok=True)
             except OSError as e:
                 sys.stderr.write("Error when making log path for " + log_file + ": %s\n" % (e))
+        self.logs = {}
+        for channel in self.channels:
+            self.logs[channel] = log_file
         try:
             with open(log_file, 'a') as log:
                 log.write("%s <%s> %s\n" % (timestamp, nick, message))
