@@ -15,6 +15,7 @@ import codecs
 import os
 from threading import Thread
 from plugins.passive import url_announce
+from plugins.passive import LogFile
 
 
 # Create our bot class
@@ -33,6 +34,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.channel_list = channels
         self.nickpass = nickpass
         self.prefix = prefix
+        self.logs = {}
+        for ch in channels:
+            log_file = datetime.datetime.utcnow().strftime("./logs/{channel}/%Y-%m-{channel}.log").format(channel=ch)
+            self.logs[ch] = LogFile(log_file)
 
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
@@ -179,11 +184,14 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         elif command == "goodbye":
             self.say(source, "goodbye " + user)
         elif command == "ugm":
-            self.say(source, "good (UGT) morning to all from " + user)
+            self.say(source, "good (UGT) morning to all from " + user + "!")
         elif command == "ugn":
-            self.say(source, "good (UGT) night to all from " + user)
+            self.say(source, "good (UGT) night to all from " + user + "!")
         elif command == "slap":
-            connection.action(source, "slaps " + user + " around a bit with a large trout")
+            if arguments is None:
+                connection.action(source, "slaps " + user + " around a bit with a large trout")
+            else:
+                connection.action(source, "slaps " + arguments  + " around a bit with a large trout")
         elif command == "rot13":
             if arguments is None:
                 self.say(source, "I'm sorry, I need a message to cipher, try \"!rot13 message\"")
@@ -214,25 +222,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def logmessage(self, channel, nick, message):
         """Create IRC logs"""
-        timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-
-        log_path = datetime.datetime.utcnow().strftime("./logs/%%s") % (channel)
-        log_name = datetime.datetime.utcnow().strftime("%Y-%m-%%s.log") % (channel)
-        log_file = log_path + "/" + log_name
-
-        if os.path.exists(log_file) == False:
-            try:
-                os.makedirs(os.path.dirname(log_file), exist_ok=True)
-            except OSError as e:
-                sys.stderr.write("Error when making log path for " + log_file + ": %s\n" % (e))
-        self.logs = {}
-        for channel in self.channels:
-            self.logs[channel] = log_file
-        try:
-            with open(log_file, 'a') as log:
-                log.write("%s <%s> %s\n" % (timestamp, nick, message))
-        except:
-            sys.stderr.write("Error writing to log " + log_name)
+        self.logs[channel].write("<{0}> {1}".format(nick, message))
 
 class TCPinput(Thread):
     """Listen for data on a port and send it to Autobot.announce"""
