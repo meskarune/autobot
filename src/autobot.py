@@ -31,7 +31,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.channel_list = channels
         self.nickpass = nickpass
         self.prefix = prefix
+        self.log_scheme = log_scheme
         self.logs = {}
+        self.logs['autobot'] = datetime.datetime.utcnow().strftime(log_scheme).format(channel='autobot')
         for ch in channels:
             log_name = datetime.datetime.utcnow().strftime(log_scheme).format(channel=ch)
             self.logs[ch] = LogFile.LogFile(log_name)
@@ -164,6 +166,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log private messages and respond to command requests"""
         nick = event.source.nick
         message = event.arguments[0]
+        self.logs[nick] = datetime.datetime.utcnow().strftime(self.log_scheme).format(channel=nick)
         self.logmessage(nick, nick, message)
         command = message.partition(' ')[0]
         arguments = message.partition(' ')[2]
