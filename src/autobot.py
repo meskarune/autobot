@@ -3,7 +3,6 @@
 """A full featured python IRC bot"""
 
 import configparser
-import sys
 import socket
 import ssl
 import time
@@ -12,16 +11,14 @@ import re
 import select
 import irc.bot
 import codecs
-import os
 from threading import Thread
-from plugins.passive import url_announce
-from plugins.passive import LogFile
+from plugins.passive import url_announce, LogFile
 
 
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
     """Create the single server irc bot"""
-    def __init__(self, nick, name, nickpass, prefix, channels, network, listenhost, listenport, port=6667, usessl=False):
+    def __init__(self, nick, name, nickpass, prefix, log_scheme, channels, network, listenhost, listenport, port=6667, usessl=False):
         """Connect to the IRC server"""
         if usessl:
             factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
@@ -36,8 +33,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.prefix = prefix
         self.logs = {}
         for ch in channels:
-            log_file = datetime.datetime.utcnow().strftime("./logs/{channel}/%Y-%m-{channel}.log").format(channel=ch)
-            self.logs[ch] = LogFile(log_file)
+            log_name = datetime.datetime.utcnow().strftime(log_scheme).format(channel=ch)
+            self.logs[ch] = LogFile.LogFile(log_name)
 
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
@@ -45,6 +42,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.inputthread.start()
 
     def say(self, target, text):
+        """Send message to IRC and log it"""
         self.connection.privmsg(target, text)
         self.logmessage(target, self.nick, text)
 
@@ -63,7 +61,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def get_version(self):
         """CTCP version reply"""
-        return "AUTOBOT IRC BOT"
+        return "Autobot IRC bot"
 
     def on_privnotice(self, connection, event):
         """Identify to nickserv and log privnotices"""
@@ -208,6 +206,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                 self.say(source, "You don't have permission to do that")
         elif command == "die":
             if isOper:
+                self.close_logs()
                 self.die(msg="Bye, cruel world!")
             else:
                 self.say(source, "You don't have permission to do that")
@@ -223,6 +222,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
     def logmessage(self, channel, nick, message):
         """Create IRC logs"""
         self.logs[channel].write("<{0}> {1}".format(nick, message))
+
+    def close_logs(self):
+        for channel in self.channel_list:
+            self.logs[channel].close()
 
 class TCPinput(Thread):
     """Listen for data on a port and send it to Autobot.announce"""
@@ -276,8 +279,9 @@ def main():
     listenhost = config.get("tcp", "host")
     listenport = int(config.get("tcp", "port"))
     prefix = config.get("bot", "prefix")
+    log_scheme = config.get("bot", "log_scheme")
 
-    bot = AutoBot(nick, name, nickpass, prefix, channels, network, listenhost, listenport, port, _ssl)
+    bot = AutoBot(nick, name, nickpass, prefix, log_scheme, channels, network, listenhost, listenport, port, _ssl)
     bot.start()
 
 if __name__ == "__main__":
