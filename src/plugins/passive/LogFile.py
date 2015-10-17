@@ -5,6 +5,7 @@
 import sys
 import os
 import datetime
+import time
 
 
 class LogFile(object):
@@ -29,8 +30,15 @@ class LogFile(object):
         timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         try:
             self.log.write("{0} {1}\n".format(timestamp, message))
+            self.last_write = int(time.time())
         except:
             sys.stderr.write("Error writting to log " + self.path)
+
+    def is_stale(self, timestamp):
+        if timestamp - self.last_write <= 900:
+            return False
+        else:
+            return True
 
     def close(self):
         """close file"""
