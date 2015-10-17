@@ -43,6 +43,13 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
         self.inputthread.start()
 
+    def start(self):
+        try:
+            super().start()
+        except:
+            self.close_logs()
+            raise
+
     def say(self, target, text):
         """Send message to IRC and log it"""
         self.connection.privmsg(target, text)
