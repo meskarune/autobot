@@ -190,10 +190,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         elif command == "ugn":
             self.say(source, "good (UGT) night to all from " + user + "!")
         elif command == "slap":
-            if arguments is None:
+            if arguments is None or arguments.isspace():
                 connection.action(source, "slaps " + user + " around a bit with a large trout")
             else:
-                connection.action(source, "slaps " + arguments.lstrip(" ")  + " around a bit with a large trout")
+                connection.action(source, "slaps " + arguments.strip(" ")  + " around a bit with a large trout")
         elif command == "rot13":
             if arguments is None:
                 self.say(source, "I'm sorry, I need a message to cipher, try \"!rot13 message\"")
