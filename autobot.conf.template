@@ -13,10 +13,9 @@ port: 47998
 
 [bot]
 prefix = !
-log_path = "./logs/%%s"
-log_scheme = "%Y-%m-%%s.log"
+log_scheme = ./logs/{channel}/%%Y-%%m-{channel}.log
 
 [plugins]
 commands = hello, goodbye, slap, ugt, rot13, throw
 OP_commands = die, disconect
-passive = url_announce
+passive = url_announce, LogFile

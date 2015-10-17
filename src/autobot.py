@@ -193,7 +193,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             if arguments is None:
                 connection.action(source, "slaps " + user + " around a bit with a large trout")
             else:
-                connection.action(source, "slaps " + arguments  + " around a bit with a large trout")
+                connection.action(source, "slaps " + arguments.lstrip(" ")  + " around a bit with a large trout")
         elif command == "rot13":
             if arguments is None:
                 self.say(source, "I'm sorry, I need a message to cipher, try \"!rot13 message\"")
@@ -228,8 +228,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.logs[channel].write("<{0}> {1}".format(nick, message))
 
     def close_logs(self):
-        for channel in self.channel_list:
-            self.logs[channel].close()
+        for log in self.logs:
+            self.logs[log].close()
 
 class TCPinput(Thread):
     """Listen for data on a port and send it to Autobot.announce"""
@@ -259,15 +259,12 @@ class TCPinput(Thread):
                     conn, addr = self.accept_socket.accept()
                     self.epoll.register(conn.fileno(), select.EPOLLIN)
                     self.stuff[conn.fileno()] = conn
-
                 else:
                     conn = self.stuff[sfd]
-
                     buf = conn.recv(1024)
                     if not buf:
                         conn.close()
                         continue
-
                     self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():

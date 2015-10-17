@@ -34,17 +34,4 @@ class LogFile(object):
 
     def close(self):
         """close file"""
-        self.log.close(self.path)
-
-#def logmessage(self, channel, nick, message):
-#    """Create IRC logs"""
-#    self.logs = {}
-#    for ch in self.channels:
-#        log_file = datetime.datetime.utcnow().strftime("./logs/{channel}/%Y-%m-{channel}.log").format(channel=ch)
-#        self.logs[ch] = LogFile(log_file)
-#
-#    self.logs[channel].write("<{0}> {1}".format(nick, message))
-#
-#def log_close(self):
-#    for channel in self.channels:
-#        self.logs[channel].close()
+        self.log.close()
