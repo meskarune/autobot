@@ -20,6 +20,7 @@ class LogFile(object):
                 sys.stderr.write("Error when making log path for {0} - {1}\n".format(path, err))
         try:
             self.log = open(path, 'a')
+            sys.stderr.write("opening " + path)
         except PermissionError as err:
             sys.stderr.write("Permission error: " + err)
         except:
