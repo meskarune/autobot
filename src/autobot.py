@@ -12,7 +12,7 @@ import sys
 import select
 import irc.bot
 import codecs
-from threading import Thread
+from threading import Thread, Timer
 from plugins.passive import url_announce, LogFile
 
 
@@ -42,9 +42,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             log_name = datetime.datetime.utcnow().strftime(log_scheme).format(channel=ch)
             self.logs[ch] = LogFile.LogFile(log_name)
 
-        while True:
-            self.refresh_logs()
-            time.sleep(960)
+        Timer(960, self.refresh_logs).start()
 
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
@@ -183,7 +181,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         message = event.arguments[0]
         self.log_message(nick, nick, message)
         command = message.partition(' ')[0]
-        arguments = message.partition(' ')[2]
+        arguments = message.partition(' ')[2].strip(' ')
         if arguments == '':
             self.do_command(event, False, nick, command, None)
         else:
@@ -247,12 +245,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         timestamp = int(time.time())
         for log in self.logs:
             if self.logs[log].is_stale(timestamp):
-                try:
-                    self.logs[log].close()
-                    sys.stderr.write("Removing" + log + "from open logs")
-                    del self.logs[log]
-                except KeyError:
-                    pass
+                self.logs[log].close()
+                sys.stderr.write("closing " + log + "\n")
 
     def close_logs(self):
         """ Close all open log files"""
