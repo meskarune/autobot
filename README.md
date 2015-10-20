@@ -39,7 +39,6 @@ To-do
 * SASL auth
 * CertFP auth
 * Make modular so scripts can be loaded from a directory and be used by the bot
-* Create Stable branch
 
 Refactor irc channel OP check to loop through connected channels and check if the user has
 OPs in any of them, if yes, then isOper is True - maybe should skip this and just have a mod list in configuration?
