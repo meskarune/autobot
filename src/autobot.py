@@ -64,7 +64,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def do(self, target, text):
         self.connection.action(target, text)
-        self.log_message(target, "*", connection.get_nickname() + " " + text)
+        self.log_message(target, "*", self.connection.get_nickname() + " " + text)
 
     def on_nicknameinuse(self, connection, event):
         """If the nick is in use, get nick_"""
