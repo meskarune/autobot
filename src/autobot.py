@@ -143,12 +143,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log topic changes"""
         self.log_message(event.target, "-!-", 'topic changed to "%s" by %s' % (event.arguments[0], event.source.nick))
 
-<<<<<<< HEAD
-=======
     def on_action(self, connection, event):
         self.log_message(event.target, "*", event.source.nick + " " + event.arguments[0])
 
->>>>>>> master
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
         channel = event.target
