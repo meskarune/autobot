@@ -42,7 +42,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             log_name = datetime.datetime.utcnow().strftime(log_scheme).format(channel=ch)
             self.logs[ch] = LogFile.LogFile(log_name)
 
-        Timer(960, self.refresh_logs).start()
+        self.periodic = Timer(960, self.refresh_logs)
+        self.periodic.start()
 
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
@@ -225,6 +226,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         elif command == "die":
             if isOper:
                 self.close_logs()
+                self.periodic.cancel()
                 self.die(msg="Bye, cruel world!")
             else:
                 self.say(source, "You don't have permission to do that")
