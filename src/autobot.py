@@ -89,7 +89,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             return
         source = event.source.nick
         if source and source.lower() == "nickserv":
-            if event.arguments[⎈n0].lower().find("identify") >= 0:
+            if event.arguments[0].lower().find("identify") >= 0:
                 if self.nickpass and self.nick == connection.get_nickname():
                     connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
                     self.log_message("autobot", "-!-", "Identified to nickserv")
@@ -97,14 +97,15 @@ class AutoBot(irc.bot.SingleServerIRCBot):
     #def on_disconnect(self, connection, event):
 
     def on_pubnotice(self, connection, event):
+        """Log public notices"""
         self.log_message(event.target, "-!-", "(notice) " + event.source + ": " + event.arguments[0])
 
     def on_kick(self, connection, event):
         """Log kicked nicks and rejoin channels if bot is kicked"""
-        kickedNick = event.arguments[0]
+        kicked_nick = event.arguments[0]
         kicker = event.source.nick
-        self.log_message(event.target, "<--", "%s was kicked from the channel by %s" % (kickedNick, kicker))
-        if kickedNick == self.nick:
+        self.log_message(event.target, "<--", "%s was kicked from the channel by %s" % (kicked_nick, kicker))
+        if kicked_nick == self.nick:
             time.sleep(10) #waits 10 seconds
             for channel in self.channel_list:
                 connection.join(channel)
@@ -127,11 +128,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def on_nick(self, connection, event):
         """Log nick changes"""
-        oldNick = event.source.nick
-        newNick = event.target
+        new_nick = event.target
         for channel in self.channels:
-            if self.channels[channel].has_user(newNick):
-                self.log_message(channel, "-!-", "%s changed their nick to %s" % (event.source, newNick))
+            if self.channels[channel].has_user(new_nick):
+                self.log_message(channel, "-!-", "%s changed their nick to %s" % (event.source, new_nick))
 
     def on_mode(self, connection, event):
         """Log mode changes"""
@@ -159,8 +159,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             r'''[^\s`!()\[\]{};:'".,<>?«»“”‘’]))''', re.IGNORECASE)
 
         if url_regex.search(message):
-            messageList = message.split(' ')
-            for element in messageList:
+            message_list = message.split(' ')
+            for element in message_list:
                 if url_regex.match(element):
                     title = url_announce.parse_url(element)
                     if title is not None:
@@ -195,7 +195,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Commands the bot will respond to"""
         user = event.source.nick
         connection = self.connection
-        message = event.arguments[0]
         if command == "hello":
             self.say(source, "hello " + user)
         elif command == "goodbye":
