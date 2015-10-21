@@ -22,8 +22,9 @@ class LogFile(object):
         self.open()
 
     def open(self):
+        """Open log file with line buffering"""
         try:
-            self.log = open(self.path, 'a')
+            self.log = open(self.path, 'a', 1)
             sys.stderr.write("opening " + self.path + "\n")
         except PermissionError as err:
             sys.stderr.write("Permission error: " + err + "\n")
@@ -31,7 +32,7 @@ class LogFile(object):
             sys.stderr.write("Error opening log " + self.path + "\n")
 
     def write(self, message):
-        """write to file"""
+        """Write to file"""
         if self.log.closed:
             self.open()
         timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -42,13 +43,14 @@ class LogFile(object):
             sys.stderr.write("Error writting to log " + self.path + "\n")
 
     def is_stale(self, timestamp):
+        """Check if the file hasn't been written to in 15 min"""
         if timestamp - self.last_write <= 900:
             return False
         else:
             return True
 
     def close(self):
-        """close file"""
+        """Close file"""
         if not self.log.closed:
             self.log.close()
             sys.stderr.write("Log closed " + self.path + "\n")

@@ -60,23 +60,28 @@ class AutoBot(irc.bot.SingleServerIRCBot):
     def say(self, target, text):
         """Send message to IRC and log it"""
         self.connection.privmsg(target, text)
-        self.log_message(target, "<" + self.nick + ">", text)
+        self.log_message(target, "<{0}>".format(self.connection.get_nickname()),
+                         "{0}".format(text))
 
     def do(self, target, text):
+        """Send action event to IRC and log it"""
         self.connection.action(target, text)
-        self.log_message(target, "*", self.connection.get_nickname() + " " + text)
+        self.log_message(target, "*", "{0} {1}"
+                         .format(self.connection.get_nickname(), text))
 
     def on_nicknameinuse(self, connection, event):
         """If the nick is in use, get nick_"""
-        connection.nick(connection.get_nickname() + "_")
+        connection.nick("{0}_".format(connection.get_nickname()))
 
     def on_welcome(self, connection, event):
         """Join channels and regain nick"""
         for channel in self.channel_list:
             connection.join(channel)
-            self.log_message("autobot", "-->", "Joined channel %s" % (channel))
+            self.log_message("autobot", "-->", "Joined channel {0}"
+                             .format(channel))
         if self.nickpass and connection.get_nickname() != self.nick:
-            connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
+            connection.privmsg("nickserv", "ghost {0} {1}"
+                               .format(self.nick, self.nickpass))
             self.log_message("autobot", "-!-", "Recovered nick")
 
     def get_version(self):
@@ -85,27 +90,33 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 
     def on_privnotice(self, connection, event):
         """Identify to nickserv and log privnotices"""
-        self.log_message("autobot", "<" + event.source + ">", event.arguments[0])
+        self.log_message("autobot", "<{0}>".format(event.source),
+                         event.arguments[0])
         if not event.source:
             return
         source = event.source.nick
-        if source and source.lower() == "nickserv":
-            if event.arguments[0].lower().find("identify") >= 0:
-                if self.nickpass and self.nick == connection.get_nickname():
-                    connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
-                    self.log_message("autobot", "-!-", "Identified to nickserv")
+
+        if (source and source.lower() == "nickserv"
+                and event.arguments[0].lower().find("identify") >= 0
+                and self.nickpass and self.nick == connection.get_nickname()):
+
+            connection.privmsg("nickserv", "identify {0} {1}"
+                               .format(self.nick, self.nickpass))
+            self.log_message("autobot", "-!-", "Identified to nickserv")
 
     #def on_disconnect(self, connection, event):
 
     def on_pubnotice(self, connection, event):
         """Log public notices"""
-        self.log_message(event.target, "-!-", "(notice) " + event.source + ": " + event.arguments[0])
+        self.log_message(event.target, "-!-", "(notice) {0}: {1}"
+                         .format(event.source, event.arguments[0]))
 
     def on_kick(self, connection, event):
         """Log kicked nicks and rejoin channels if bot is kicked"""
         kicked_nick = event.arguments[0]
         kicker = event.source.nick
-        self.log_message(event.target, "<--", "%s was kicked from the channel by %s" % (kicked_nick, kicker))
+        self.log_message(event.target, "<--", "{0} was kicked from the channel by {1}"
+                         .format(kicked_nick, kicker))
         if kicked_nick == self.nick:
             time.sleep(10) #waits 10 seconds
             for channel in self.channel_list:
@@ -115,43 +126,51 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log when users quit"""
         for channel in self.channels:
             if self.channels[channel].has_user(event.source.nick):
-                self.log_message(channel, "<--", "%s has quit" % (event.source))
+                self.log_message(channel, "<--", "{0} has quit"
+                                 .format(event.source))
 
     def on_join(self, connection, event):
         """Log channel joins"""
-        self.log_message(event.target, "-->", "%s joined the channel" % (event.source))
+        self.log_message(event.target, "-->", "{0} joined the channel"
+                         .format(event.source))
         if event.source.nick == self.nick:
             self.say(event.target, "Autobots, roll out!")
 
     def on_part(self, connection, event):
         """Log channel parts"""
-        self.log_message(event.target, "<--", "%s left the channel" % (event.source))
+        self.log_message(event.target, "<--", "{0} left the channel"
+                         .format(event.source))
 
     def on_nick(self, connection, event):
         """Log nick changes"""
         new_nick = event.target
         for channel in self.channels:
             if self.channels[channel].has_user(new_nick):
-                self.log_message(channel, "-!-", "%s changed their nick to %s" % (event.source, new_nick))
+                self.log_message(channel, "-!-", "{0} changed their nick to {1}"
+                                 .format(event.source, new_nick))
 
     def on_mode(self, connection, event):
         """Log mode changes"""
         mode = " ".join(event.arguments)
-        self.log_message(event.target, "-!-", "mode changed to %s by %s" % (mode, event.source.nick))
+        self.log_message(event.target, "-!-", "mode changed to {0} by {1}"
+                         .format(mode, event.source.nick))
 
     def on_topic(self, connection, event):
         """Log topic changes"""
-        self.log_message(event.target, "-!-", 'topic changed to "%s" by %s' % (event.arguments[0], event.source.nick))
+        self.log_message(event.target, "-!-", 'topic changed to "{0}" by {1}'
+                         .format(event.arguments[0], event.source.nick))
 
     def on_action(self, connection, event):
-        self.log_message(event.target, "*", event.source.nick + " " + event.arguments[0])
+        """Log channel actions"""
+        self.log_message(event.target, "*", "{0} {1}"
+                         .format(event.source.nick, event.arguments[0]))
 
     def on_pubmsg(self, connection, event):
         """Log public messages and respond to command requests"""
         channel = event.target
         nick = event.source.nick
         message = event.arguments[0]
-        self.log_message(channel, "<" + nick + ">", message)
+        self.log_message(channel, "<{0}>".format(nick), message)
 
         url_regex = re.compile(
             r'(?i)\b((?:https?://|[a-z0-9.\-]+[.][a-z]{2,4}/)'
@@ -160,12 +179,12 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             r'''[^\s`!()\[\]{};:'".,<>?«»“”‘’]))''', re.IGNORECASE)
 
         if url_regex.search(message):
-            message_list = message.split(' ')
+            message_list = [element for element in message.split(' ')
+                            if url_regex.match(element)]
             for element in message_list:
-                if url_regex.match(element):
-                    title = url_announce.parse_url(element)
-                    if title is not None:
-                        self.say(channel, title)
+                title = url_announce.parse_url(element)
+                if title is not None:
+                    self.say(channel, title)
 
         command_regex = re.compile(
             r'^(' + re.escape(self.nick) + '( |[:,] ?)'
@@ -175,18 +194,16 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         if command_regex.match(message):
             command = command_regex.match(message).group(3)
             arguments = command_regex.match(message).group(5)
-            if self.channels[channel].is_oper(nick):
-                self.do_command(event, True, channel, command, arguments)
-            else:
-                self.do_command(event, False, channel, command, arguments)
+            self.do_command(event, self.channels[channel].is_oper(nick),
+                            channel, command, arguments)
 
     def on_privmsg(self, connection, event):
         """Log private messages and respond to command requests"""
         nick = event.source.nick
         message = event.arguments[0]
-        self.log_message(nick, "<" + nick + ">", message)
+        self.log_message(nick, "<{0}>".format(nick), message)
         command = message.partition(' ')[0]
-        arguments = message.partition(' ')[2].strip(' ')
+        arguments = message.partition(' ')[2].strip()
         if arguments == '':
             self.do_command(event, False, nick, command, None)
         else:
@@ -197,27 +214,30 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         user = event.source.nick
         connection = self.connection
         if command == "hello":
-            self.say(source, "hello " + user)
+            self.say(source, "hello {0}".format(user))
         elif command == "goodbye":
-            self.say(source, "goodbye " + user)
+            self.say(source, "goodbye {0}".format(user))
         elif command == "ugm":
-            self.say(source, "good (UGT) morning to all from " + user + "!")
+            self.say(source, "good (UGT) morning to all from {0}!".format(user))
         elif command == "ugn":
-            self.say(source, "good (UGT) night to all from " + user + "!")
+            self.say(source, "good (UGT) night to all from {0}!".format(user))
         elif command == "slap":
             if arguments is None or arguments.isspace():
-                self.do(source, "slaps " + user + " around a bit with a large trout")
+                self.do(source, "slaps {0} around a bit with a large trout"
+                        .format(user))
             else:
-                self.do(source, "slaps " + arguments.strip(" ")  + " around a bit with a large trout")
+                self.do(source, "slaps {0} around a bit with a large trout."
+                        .format(arguments.strip()))
         elif command == "rot13":
             if arguments is None:
-                self.say(source, "I'm sorry, I need a message to cipher, try \"!rot13 message\"")
+                self.say(source, "I'm sorry, I need a message to cipher,"
+                         " try \"!rot13 message\"")
             else:
                 self.say(source, codecs.encode(arguments, 'rot13'))
         elif command == "help":
             self.say(source, "Available commands: ![hello, goodbye, "
-                                       "ugm, ugn, slap, rot13 <message>, "
-                                       "disconnect, die, help]")
+                     "ugm, ugn, slap, rot13 <message>, "
+                     "disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
@@ -231,19 +251,26 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             else:
                 self.say(source, "You don't have permission to do that")
         else:
-            connection.notice(user, "I'm sorry, " + user + ". I'm afraid I can't do that")
+            connection.notice(user, "I'm sorry, {0}. I'm afraid I can't do that."
+                              .format(user))
 
     def announce(self, connection, text):
         """Send notice to joined channels"""
         for channel in self.channel_list:
             connection.notice(channel, text)
-            self.log_message(channel, "-!-", "(notice) " + connection.get_nickname() + ": " + text)
+            self.log_message(channel, "-!-", "(notice) {0}: {1}"
+                             .format(connection.get_nickname(), text))
 
     def log_message(self, channel, nick, message):
         """Create IRC logs"""
-        if channel not in self.logs:
-            self.logs[channel] = LogFile.LogFile(datetime.datetime.utcnow().strftime(self.log_scheme).format(channel=channel))
-        self.logs[channel].write("{0} {1}".format(nick, message))
+        try:
+            log_file = self.logs[channel]
+        except KeyError:
+            self.logs[channel] = LogFile.LogFile(datetime.datetime.utcnow()
+                                                 .strftime(self.log_scheme)
+                                                 .format(channel=channel))
+            log_file = self.logs[channel]
+        log_file.write("{0} {1}".format(nick, message))
 
     def refresh_logs(self):
         """Remove stale log files (15 min without writes)"""
