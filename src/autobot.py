@@ -27,7 +27,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             factory = irc.connection.Factory()
 
         try:
-            irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, connect_factory = factory)
+            irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, reconnection_interval=120, connect_factory = factory)
         except irc.client.ServerConnectionError:
             sys.stderr.write(sys.exc_info()[1])
 
@@ -105,6 +105,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             self.log_message("autobot", "-!-", "Identified to nickserv")
 
     #def on_disconnect(self, connection, event):
+    #    self.connection.reconnect()
 
     def on_pubnotice(self, connection, event):
         """Log public notices"""

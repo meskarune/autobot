@@ -15,8 +15,10 @@ def parse_url(url):
     path = urlsplit(url).path
     query = '?{uri.query}'.format(uri=urlsplit(url))
     try:
+        parsed_url = baseurl.encode("idna").decode("idna") + path + query
+    except UnicodeError:
         parsed_url = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?')
-    except:
+    else:
         return
     try:
         request = Request(parsed_url)
