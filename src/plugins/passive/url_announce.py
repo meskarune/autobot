@@ -15,15 +15,13 @@ def parse_url(url):
     path = urlsplit(url).path
     query = '?{uri.query}'.format(uri=urlsplit(url))
     try:
-        parsed_url = baseurl.encode("idna").decode("idna") + path + query
-    except UnicodeError:
-        parsed_url = baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?')
-    else:
-        return
-    try:
-        request = Request(parsed_url)
+        request = Request(baseurl.encode("idna").decode("idna") + path + query)
         request.add_header('Accept-Encoding', 'utf-8')
         request.add_header('User-Agent', 'Mozilla/5.0')
+        response = urlopen(request)
+    except UnicodeEncodeError:
+        request = Request(baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?'))
+        request.add_header('Accept-Encoding', 'utf-8')
         response = urlopen(request)
     except:
         return
