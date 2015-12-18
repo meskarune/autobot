@@ -4,15 +4,15 @@
 
 import re
 import json
-from requests import get
 from urllib.parse import quote_plus
+from requests import get
 from bs4 import BeautifulSoup
 
 def ddg(search):
+    """Search duck duck go and return the first url from the restuls"""
     if search[0].startswith("!"):
         try:
-            query =
-            "http://api.duckduckgo.com/?q={0}&format=json&no_html=1&no_redirect=1".format(quote_plus(search + " -site:yahoo.com"))
+            query = "http://api.duckduckgo.com/?q={0}&format=json&no_html=1&no_redirect=1".format(quote_plus(search + " -site:yahoo.com"))
             results = json.loads(get(query).text)
             if results['Redirect']:
                 link = results['Redirect']
@@ -22,8 +22,7 @@ def ddg(search):
             return
     else:
         try:
-            site =
-            get("http://duckduckgo.com/html/?q={0}&kl=us-en".format(search + " -site:yahoo.com")).text
+            site = get("http://duckduckgo.com/html/?q={0}&kl=us-en".format(search + " -site:yahoo.com")).text
         except:
             return
         try:
