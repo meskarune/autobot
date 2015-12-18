@@ -12,7 +12,7 @@ def ddg(search):
     """Search duck duck go and return the first url from the restuls"""
     if search[0].startswith("!"):
         try:
-            query = "http://api.duckduckgo.com/?q={0}&format=json&no_html=1&no_redirect=1".format(quote_plus(search + " -site:yahoo.com"))
+            query = "http://api.duckduckgo.com/?q={0}&format=json&no_html=1&no_redirect=1".format(quote_plus(search))
             results = json.loads(get(query).text)
             if results['Redirect']:
                 link = results['Redirect']
