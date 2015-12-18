@@ -241,13 +241,17 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             title = url_announce.parse_url(query)
             if title is not None:
                 self.say(source, title)
-        elif command == "wiki":
+        elif command == "w":
             query = search.wiki(arguments)
+            self.say(source, query)
+        elif command == "alw":
+            query = search.alwiki(arguments)
             self.say(source, query)
         elif command == "help":
             self.say(source, "Available commands: ![hello, goodbye, "
                      "ugm, ugn, slap, rot13 <message>, "
-                     "ddg <search>, wiki <search>, disconnect, die, help]")
+                     "ddg <search>, w <search>, alw <search>, disconnect, "
+                     "die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")

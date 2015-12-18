@@ -54,3 +54,20 @@ def wiki(search):
     except:
         return
     return data
+
+def alwiki(search):
+    """Search the arch linux wiki and return a Link to the result"""
+    try:
+        query = "https://wiki.archlinux.org/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
+        results = json.loads(get(query).text)
+        description = results[1][0]
+        if description:
+            if len(description) > 250:
+                data = description[0:250] + '…' + " - " + results[3][0]
+            else:
+                data = description + " - " + results[3][0]
+        else:
+            data = results[3][0]
+    except:
+        return
+    return data
