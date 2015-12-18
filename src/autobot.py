@@ -14,7 +14,7 @@ import irc.bot
 import codecs
 from threading import Thread, Timer
 from plugins.passive import url_announce, LogFile
-
+from plugins.unprivledged import search
 
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
@@ -235,6 +235,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                          " try \"!rot13 message\"")
             else:
                 self.say(source, codecs.encode(arguments, 'rot13'))
+        elif command == "ddg":
+            self.say(source, search.ddg(arguments))
         elif command == "help":
             self.say(source, "Available commands: ![hello, goodbye, "
                      "ugm, ugn, slap, rot13 <message>, "

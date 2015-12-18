@@ -3,9 +3,8 @@
 """A plugin for Autobot that announces the title for urls in IRC channels"""
 
 import encodings
-from urllib.request import urlopen, Request
-from urllib.parse   import quote, urlsplit
-from urllib.error import URLError
+from requests import get
+from urllib.parse import urlsplit
 from bs4 import BeautifulSoup
 
 def parse_url(url):
@@ -15,20 +14,12 @@ def parse_url(url):
     path = urlsplit(url).path
     query = '?{uri.query}'.format(uri=urlsplit(url))
     try:
-        request = Request(baseurl.encode("idna").decode("idna") + path + query)
-        request.add_header('Accept-Encoding', 'utf-8')
-        request.add_header('User-Agent', 'Mozilla/5.0')
-        response = urlopen(request)
-    except UnicodeEncodeError:
-        request = Request(baseurl.encode("idna").decode("idna") + quote(path + query, safe='/#:=&?'))
-        request.add_header('Accept-Encoding', 'utf-8')
-        response = urlopen(request)
+        response = get(baseurl + path + query)
     except:
         return
     try:
-        URL = BeautifulSoup(response.read(), "html.parser")
-    except URLError as e:
-        sys.stderr.write("Error when fetching " + url + ": %s\n" % (e))
+        URL = BeautifulSoup(response.text, "html.parser")
+    except:
         return
     if not URL.title:
         return
