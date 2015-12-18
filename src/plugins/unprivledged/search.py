@@ -26,7 +26,7 @@ def ddg(search):
         except:
             return
         try:
-            parsed = BeautifulSoup(site)
+            parsed = BeautifulSoup(site, "html.parser")
         except:
             return
         try:
@@ -37,3 +37,20 @@ def ddg(search):
         return link[0:250] + '…'
     else:
         return link
+
+def wiki(search):
+    """Search Wikipedia and return a short description and Link to the result"""
+    try:
+        query = "https://en.wikipedia.org/w/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
+        results = json.loads(get(query).text)
+        description = results[2][0]
+        if description:
+            if len(description) > 250:
+                data = description[0:250] + '…' + " - " + results[3][0]
+            else:
+                data = description + " - " + results[3][0]
+        else:
+            data = results[3][0]
+    except:
+        return
+    return data
