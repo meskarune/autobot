@@ -11,7 +11,8 @@ from bs4 import BeautifulSoup
 def ddg(search):
     if search[0].startswith("!"):
         try:
-            query = "http://api.duckduckgo.com/?q={0}&format=json&no_html=1&no_redirect=1".format(quote_plus(search))
+            query =
+            "http://api.duckduckgo.com/?q={0}&format=json&no_html=1&no_redirect=1".format(quote_plus(search + " -site:yahoo.com"))
             results = json.loads(get(query).text)
             if results['Redirect']:
                 link = results['Redirect']
@@ -21,7 +22,8 @@ def ddg(search):
             return
     else:
         try:
-            site = get("http://duckduckgo.com/html/?q={0}&kl=us-en".format(search)).text
+            site =
+            get("http://duckduckgo.com/html/?q={0}&kl=us-en".format(search + " -site:yahoo.com")).text
         except:
             return
         try:
