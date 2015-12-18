@@ -236,11 +236,15 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             else:
                 self.say(source, codecs.encode(arguments, 'rot13'))
         elif command == "ddg":
-            self.say(source, search.ddg(arguments))
+            query = search.ddg(arguments)
+            self.say(source, query)
+            title = url_announce.parse_url(query)
+            if title is not None:
+                self.say(source, title)
         elif command == "help":
             self.say(source, "Available commands: ![hello, goodbye, "
                      "ugm, ugn, slap, rot13 <message>, "
-                     "disconnect, die, help]")
+                     "ddg <search>, disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
