@@ -20,16 +20,25 @@ Features
 * Has some basic commands that are listed with !help
 * Logs all channels and network notifications
 
+Plugins
+-------
+* url announcements
+* web search
+
+Planned:
+* factoids
+* quotes
+
 Installation
 ------------
 
-Autobot uses python and the python libraries irclib, urllib and beautifulsoup.
+Autobot uses python and the python libraries irclib, urllib, requests, and beautifulsoup.
 Once these are installed you should be able to just run it.
 
 Configuration
 -------------
 
-Copy the autobot.conf.template to autobot.conf and update the settings for your
+Copy the autobot.conf.template to src/autobot.conf and update the settings for your
 personal use. Then run the bot with ```python autobot.py```
 
 To-do
@@ -39,6 +48,7 @@ To-do
 * SASL auth
 * CertFP auth
 * Make modular so scripts can be loaded from a directory and be used by the bot
+* More better configuration parsing and checking with defaults
 
 Refactor irc channel OP check to loop through connected channels and check if the user has
 OPs in any of them, if yes, then isOper is True - maybe should skip this and just have a mod list in configuration?
