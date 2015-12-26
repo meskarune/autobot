@@ -14,7 +14,9 @@ def parse_url(url):
     path = urlsplit(url).path
     query = '?{uri.query}'.format(uri=urlsplit(url))
     try:
-        response = get(baseurl + path + query)
+        headers = {'Accept-Encoding': 'utf-8',
+                   'User-Agent': 'Mozilla/5.0'}
+        response = get(baseurl + path + query, headers=headers)
     except:
         return
     try:
