@@ -38,7 +38,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.logs = {}
         self.logs['autobot'] = LogFile.LogFile(datetime.datetime.utcnow().strftime(self.log_scheme).format(channel='autobot'))
         for ch in self.channel_list:
-            log_name = datetime.datetime.utcnow().strftime(log_scheme).format(channel=ch)
+            log_name = datetime.datetime.utcnow().strftime(self.log_scheme).format(channel=ch)
             self.logs[ch] = LogFile.LogFile(log_name)
 
         self.periodic = Timer(960, self.refresh_logs)
