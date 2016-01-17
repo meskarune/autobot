@@ -36,7 +36,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         # Get Log configuration, create dictionary of log files, start refresh timer.
         self.log_scheme = self.config.get("bot", "log_scheme")
         self.logs = {}
-        self.logs['autobot'] = LogFile.LogFile(datetime.datetime.utcnow().strftime(log_scheme).format(channel='autobot'))
+        self.logs['autobot'] = LogFile.LogFile(datetime.datetime.utcnow().strftime(self.log_scheme).format(channel='autobot'))
         for ch in self.channel_list:
             log_name = datetime.datetime.utcnow().strftime(log_scheme).format(channel=ch)
             self.logs[ch] = LogFile.LogFile(log_name)
