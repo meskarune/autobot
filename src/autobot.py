@@ -19,34 +19,34 @@ from plugins.unprivledged import search
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
     """Create the single server irc bot"""
-    def __init__(self, nick, name, nickpass, prefix, log_scheme, channels, network, listenhost, listenport, port=6667, usessl=False):
-        """Connect to the IRC server"""
-        if usessl:
-            factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
-        else:
-            factory = irc.connection.Factory()
+    def __init__(self):
+        """Set variables, handle logs, and listen for input on a port"""
+        self.config = configparser.ConfigParser()
+        self.config.read("autobot.conf")
 
-        try:
-            irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, reconnection_interval=120, connect_factory = factory)
-        except irc.client.ServerConnectionError:
-            sys.stderr.write(sys.exc_info()[1])
+        self.nick = self.config.get("irc", "nick")
+        self.nickpass = self.config.get("irc", "nickpass")
+        self.name = self.config.get("irc", "name")
+        self.network = self.config.get("irc", "network")
+        self.port = int(self.config.get("irc", "port"))
+        self._ssl = self.config.getboolean("irc", "ssl")
+        self.channel_list = [channel.strip() for channel in config.get("irc", "channels").split(",")]
+        self.prefix = self.config.get("bot", "prefix")
 
-        self.nick = nick
-        self.channel_list = channels
-        self.nickpass = nickpass
-        self.prefix = prefix
-        self.log_scheme = log_scheme
+        # Get Log configuration, create dictionary of log files, start refresh timer.
+        self.log_scheme = self.config.get("bot", "log_scheme")
         self.logs = {}
         self.logs['autobot'] = LogFile.LogFile(datetime.datetime.utcnow().strftime(log_scheme).format(channel='autobot'))
-        for ch in channels:
+        for ch in self.channel_list:
             log_name = datetime.datetime.utcnow().strftime(log_scheme).format(channel=ch)
             self.logs[ch] = LogFile.LogFile(log_name)
 
         self.periodic = Timer(960, self.refresh_logs)
         self.periodic.start()
 
-        self.connection.add_global_handler("quit", self.alt_on_quit, -30)
-
+        #Listen for data to announce to channels
+        listenhost = self.config.get("tcp", "host")
+        listenport = int(self.config.get("tcp", "port"))
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
         self.inputthread.start()
 
@@ -56,6 +56,27 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         except:
             self.close_logs()
             raise
+
+    def server_connect(self, connection, nick, name, network, port=6667, usessl=False):
+        """Connect to the IRC server"""
+        if usessl:
+            factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
+        else:
+            factory = irc.connection.Factory()
+        try:
+            irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick,
+                                                name, reconnection_interval=120,
+                                                connect_factory = factory)
+        except irc.client.ServerConnectionError:
+            sys.stderr.write(sys.exc_info()[1])
+
+    def run(self):
+        """Set global handlers and connect to IRC"""
+
+        #Allows the logging of users on quit
+        self.connection.add_global_handler("quit", self.alt_on_quit, -30)
+
+        self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
 
     def say(self, target, text):
         """Send message to IRC and log it"""
@@ -104,8 +125,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                                .format(self.nick, self.nickpass))
             self.log_message("autobot", "-!-", "Identified to nickserv")
 
-    #def on_disconnect(self, connection, event):
-    #    self.connection.reconnect()
+    def on_disconnect(self, connection, event):
+        self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
 
     def on_pubnotice(self, connection, event):
         """Log public notices"""
@@ -335,21 +356,7 @@ class TCPinput(Thread):
                     self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():
-    config = configparser.ConfigParser()
-    config.read("autobot.conf")
-    network = config.get("irc", "network")
-    port = int(config.get("irc", "port"))
-    _ssl = config.getboolean("irc", "ssl")
-    channels = [channel.strip() for channel in config.get("irc", "channels").split(",")]
-    nick = config.get("irc", "nick")
-    nickpass = config.get("irc", "nickpass")
-    name = config.get("irc", "name")
-    listenhost = config.get("tcp", "host")
-    listenport = int(config.get("tcp", "port"))
-    prefix = config.get("bot", "prefix")
-    log_scheme = config.get("bot", "log_scheme")
-
-    bot = AutoBot(nick, name, nickpass, prefix, log_scheme, channels, network, listenhost, listenport, port, _ssl)
+    bot = AutoBot()
     bot.start()
 
 if __name__ == "__main__":
