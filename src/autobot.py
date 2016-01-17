@@ -30,7 +30,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.network = self.config.get("irc", "network")
         self.port = int(self.config.get("irc", "port"))
         self._ssl = self.config.getboolean("irc", "ssl")
-        self.channel_list = [channel.strip() for channel in config.get("irc", "channels").split(",")]
+        self.channel_list = [channel.strip() for channel in self.config.get("irc", "channels").split(",")]
         self.prefix = self.config.get("bot", "prefix")
 
         # Get Log configuration, create dictionary of log files, start refresh timer.
