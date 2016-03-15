@@ -33,6 +33,19 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.channel_list = [channel.strip() for channel in self.config.get("irc", "channels").split(",")]
         self.prefix = self.config.get("bot", "prefix")
 
+        # Connect to IRC server
+        if self._ssl:
+            factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
+        else:
+            factory = irc.connectionFactory()
+        try:
+            irc.bot.SingleServerIRCBot.__init__(self, [(self.network, self.port)],
+                                                self.nick, self.name,
+                                                reconnection_interval=120,
+                                                connect_factory = factory)
+        except irc.client.ServerConnectionError:
+            sys.stderr.write(sys.exc_info()[1])
+
         # Get Log configuration, create dictionary of log files, start refresh timer.
         self.log_scheme = self.config.get("bot", "log_scheme")
         self.logs = {}
@@ -70,13 +83,13 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         except irc.client.ServerConnectionError:
             sys.stderr.write(sys.exc_info()[1])
 
-    def run(self):
+    def run(self, connection):
         """Set global handlers and connect to IRC"""
 
         #Allows the logging of users on quit
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
-        self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
+        #self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
 
     def say(self, target, text):
         """Send message to IRC and log it"""
@@ -126,7 +139,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             self.log_message("autobot", "-!-", "Identified to nickserv")
 
     def on_disconnect(self, connection, event):
-        self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
+        self._connected_checker()
+        #self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
 
     def on_pubnotice(self, connection, event):
         """Log public notices"""
