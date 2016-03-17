@@ -25,7 +25,7 @@ class LogFile(object):
         """Open log file with line buffering"""
         try:
             self.log = open(self.path, 'a', 1)
-            sys.stderr.write("opening " + self.path + "\n")
+            sys.stderr.write("Log file open: " + self.path + "\n")
         except PermissionError as err:
             sys.stderr.write("Permission error: " + err + "\n")
         except:
@@ -53,4 +53,4 @@ class LogFile(object):
         """Close file"""
         if not self.log.closed:
             self.log.close()
-            sys.stderr.write("Log closed " + self.path + "\n")
+            sys.stderr.write("Log file closed: " + self.path + "\n")
