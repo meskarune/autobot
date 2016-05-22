@@ -13,11 +13,12 @@ class FactInfo(object):
         if os.path.isfile(db) is False:
             """create the json file"""
             jsonData = schema
-            with open(db, 'w') as outfile
-                json.dump(jsonData, outfile, sort_keys = True,
+            with open(db, 'w') as jsonFile
+                json.dump(jsonData,jsonFile, sort_keys = True,
                           indent = 4, ensure_ascii=False)
         try:
-            self.results = json.loads(get(self.db).text)
+            with open(db, 'r') as jsonFile
+                self.results = json.loads(db.read())
         except ValueError as err:
             sys.stderr.write("Error with factinfo.json: " + err + " \n")
         except:
