@@ -1,0 +1,13 @@
+{
+    "admins": [
+        "meskarune",
+        "fsckd"
+    ],
+    "factinfo": {
+        "hello": "hello {}",
+        "goodbye": "goodbye {}",
+        "ugm": "good (UGT) morning to all from {}!",
+        "ugn": "good (UGT) night to all from {}!",
+        "archlinux": "A simple, lightweight distribution. <https:\/\/archlinux.org>"
+    }
+}

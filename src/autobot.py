@@ -58,10 +58,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.periodic.start()
 
         #Listen for data to announce to channels
-        listenhost = self.config.get("tcp", "host")
-        listenport = int(self.config.get("tcp", "port"))
-        self.inputthread = TCPinput(self, listenhost, listenport)
-        self.inputthread.start()
+        #listenhost = self.config.get("tcp", "host")
+        #listenport = int(self.config.get("tcp", "port"))
+        #self.inputthread = TCPinput(self, listenhost, listenport)
+        #self.inputthread.start()
 
     def start(self):
         try:
@@ -333,40 +333,40 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         for log in self.logs:
             self.logs[log].close()
 
-class TCPinput(Thread):
-    """Listen for data on a port and send it to Autobot.announce"""
-    def __init__(self, AutoBot, listenhost, listenport):
-        Thread.__init__(self)
-        self.setDaemon(1)
-        self.AutoBot = AutoBot
-        self.listenport = listenport
-
-        self.accept_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.accept_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.accept_socket.bind((listenhost, listenport))
-        self.accept_socket.listen(10)
-
-        self.accept_socket.setblocking(False)
-
-        self.epoll = select.epoll()
-        self.epoll.register(self.accept_socket.fileno(), select.EPOLLIN)
-
-        self.stuff = {}
-
-    def run(self):
-        while True:
-            for sfd, ev in self.epoll.poll():
-                if sfd == self.accept_socket.fileno():
-                    conn, addr = self.accept_socket.accept()
-                    self.epoll.register(conn.fileno(), select.EPOLLIN)
-                    self.stuff[conn.fileno()] = conn
-                else:
-                    conn = self.stuff[sfd]
-                    buf = conn.recv(1024)
-                    if not buf:
-                        conn.close()
-                        continue
-                    self.AutoBot.announce(buf.decode("utf-8", "replace").strip())
+#class TCPinput(Thread):
+#    """Listen for data on a port and send it to Autobot.announce"""
+#    def __init__(self, AutoBot, listenhost, listenport):
+#        Thread.__init__(self)
+#        self.setDaemon(1)
+#        self.AutoBot = AutoBot
+#        self.listenport = listenport
+#
+#        self.accept_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#        self.accept_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#        self.accept_socket.bind((listenhost, listenport))
+#        self.accept_socket.listen(10)
+#
+#        self.accept_socket.setblocking(False)
+#
+#        self.epoll = select.epoll()
+#        self.epoll.register(self.accept_socket.fileno(), select.EPOLLIN)
+#
+#        self.stuff = {}
+#
+#    def run(self):
+#        while True:
+#            for sfd, ev in self.epoll.poll():
+#                if sfd == self.accept_socket.fileno():
+#                    conn, addr = self.accept_socket.accept()
+#                    self.epoll.register(conn.fileno(), select.EPOLLIN)
+#                    self.stuff[conn.fileno()] = conn
+#                else:
+#                    conn = self.stuff[sfd]
+#                    buf = conn.recv(1024)
+#                    if not buf:
+#                        conn.close()
+#                        continue
+#                    self.AutoBot.announce(buf.decode("utf-8", "replace").strip())
 
 def main():
     bot = AutoBot()
