@@ -17,8 +17,8 @@ class FactInfo(object):
                 json.dump(jsonData,jsonFile, sort_keys = True,
                           indent = 4, ensure_ascii=False)
         try:
-            with open(db, 'r') as jsonFile
-                self.results = json.loads(db.read())
+            with open(db, encoding='utf-8') as jsonFile:
+                self.results = json.loads(jsonFile.read())
         except ValueError as err:
             sys.stderr.write("Error with factinfo.json: " + err + " \n")
         except:
