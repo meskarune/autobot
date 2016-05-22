@@ -16,6 +16,12 @@ class FactInfo(object):
             with open(db, 'w') as outfile
                 json.dump(jsonData, outfile, sort_keys = True,
                           indent = 4, ensure_ascii=False)
+        try:
+            self.results = json.loads(get(self.db).text)
+        except ValueError as err:
+            sys.stderr.write("Error with factinfo.json: " + err + " \n")
+        except:
+            return
     def fcaddadmin(nick):
         """Add nick to admins: list"""
 
@@ -25,11 +31,7 @@ class FactInfo(object):
     def fcget(keyword, user):
         """Pull factinfo response from the database"""
         try:
-            db = "factinfo.json"
-            results = json.loads(get(db).text)
-            response = results['factinfo'][keyword]
+            response = self.results['factinfo'][keyword]
             return response.format(user)
-        except ValueError as err:
-            sys.stderr.write("Error with factinfo.json: " + err + " \n")
         except:
             return
