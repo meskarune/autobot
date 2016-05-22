@@ -10,6 +10,9 @@
         "ugn": "good (UGT) night to all from {0}!",
         "archlinux": "A simple, lightweight distribution. <https:\/\/archlinux.org>",
         "awops": "HALP! jy2wong meskarune tigrmesh tigr fsckd vodik yar",
-        "archwomen": "https:\/\/archwomen.org"
+        "archwomen": "https:\/\/archwomen.org",
+        "rnj": "https:\/\/reddit.com/r/newjersey",
+        "lastfm": "http:\/\/www.last.fm/user/{0}",
+        "twitter": "https:\/\/twitter.com/{0}"
     }
 }
