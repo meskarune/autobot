@@ -6,7 +6,7 @@ import json
 
 class FactInfo(object):
     def __init__(self):
-        """Create the db if it doesn't exist and check for errors if it does"""
+        """Create the db if it doesn't exist"""
         self.schema = {"admins":[],"factinfo":{}}
         self.db = "factinfo.json"
         if os.path.exists(db) is False:
@@ -15,13 +15,6 @@ class FactInfo(object):
             with open(db, 'w') as outfile
                 json.dump(jsonData, outfile, sort_keys = True,
                           indent = 4, ensure_ascii=False)
-        else:
-            results = json.loads(get(self.db).text)
-            """check for errors and say something useful"""
-            try:
-                sys.stderr.write("Json database initiated \n")
-            except:
-                sys.stderr.write("Json database has errors \n")
     def fcaddadmin(nick):
         """Add nick to admins: list"""
 
@@ -35,5 +28,7 @@ class FactInfo(object):
             results = json.loads(get(db).text)
             response = results['factinfo'][keyword]
             return response.format(user)
+        except ValueError as err:
+            sys.stderr.write("Error with factinfo.json: " + err + " \n")
         except:
             return
