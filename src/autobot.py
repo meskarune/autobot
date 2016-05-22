@@ -277,6 +277,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         elif command == "alw":
             query = search.alwiki(arguments)
             self.say(source, query)
+        elif command == "gh":
+            query = search.github(arguments)
+            self.say(source, query)
         elif command == "help":
             self.say(source, "Available commands: ![hello, goodbye, "
                      "ugm, ugn, slap, rot13 <message>, "
