@@ -13,7 +13,7 @@ class FactInfo(object):
         if os.path.isfile(db) is False:
             """create the json file"""
             jsonData = schema
-            with open(db, 'w') as jsonFile
+            with open(db, 'w') as jsonFile:
                 json.dump(jsonData,jsonFile, sort_keys = True,
                           indent = 4, ensure_ascii=False)
         try:
@@ -35,4 +35,4 @@ class FactInfo(object):
             response = self.results['factinfo'][keyword]
             return response.format(user)
         except:
-            return
+            return False

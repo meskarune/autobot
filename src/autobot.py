@@ -14,7 +14,7 @@ import irc.bot
 import codecs
 from threading import Thread, Timer
 from plugins.passive import url_announce, LogFile
-from plugins.unprivledged import search
+from plugins.unprivledged import search, FactInfo
 
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
@@ -249,14 +249,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Commands the bot will respond to"""
         user = event.source.nick
         connection = self.connection
-        if command == "hello":
-            self.say(source, "hello {0}".format(user))
-        elif command == "goodbye":
-            self.say(source, "goodbye {0}".format(user))
-        elif command == "ugm":
-            self.say(source, "good (UGT) morning to all from {0}!".format(user))
-        elif command == "ugn":
-            self.say(source, "good (UGT) night to all from {0}!".format(user))
+        factinfo = FactInfo.Factinfo()
+        factoid = factinfo.fcget(command,user)
+        if factoid:
+            self.say(source,factoid.format(user))
         elif command == "slap":
             if arguments is None or arguments.isspace():
                 self.do(source, "slaps {0} around a bit with a large trout"
