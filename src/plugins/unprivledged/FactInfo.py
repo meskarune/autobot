@@ -9,27 +9,27 @@ class FactInfo(object):
     def __init__(self):
         """Create the db if it doesn't exist"""
         self.schema = {"admins":[],"factinfo":{}}
-        self.db = "factinfo.json"
-        if os.path.isfile(db) is False:
+        self.db = "data/factinfo.json"
+        if os.path.isfile(self.db) is False:
             """create the json file"""
-            jsonData = schema
-            with open(db, 'w') as jsonFile:
+            jsonData = self.schema
+            with open(self.db, 'w') as jsonFile:
                 json.dump(jsonData,jsonFile, sort_keys = True,
                           indent = 4, ensure_ascii=False)
         try:
-            with open(db, encoding='utf-8') as jsonFile:
+            with open(self.db, encoding='utf-8') as jsonFile:
                 self.results = json.loads(jsonFile.read())
         except ValueError as err:
             sys.stderr.write("Error with factinfo.json: " + err + " \n")
         except:
             return
-    def fcaddadmin(nick):
+    def fcaddadmin(self, nick):
         """Add nick to admins: list"""
 
-    def fcaddkey(keyword,response):
+    def fcaddkey(self, keyword,response):
         """Add a factinfo entry"""
 
-    def fcget(keyword, user):
+    def fcget(self, keyword, user):
         """Pull factinfo response from the database"""
         try:
             response = self.results['factinfo'][keyword]

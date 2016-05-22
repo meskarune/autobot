@@ -249,8 +249,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Commands the bot will respond to"""
         user = event.source.nick
         connection = self.connection
-        factinfo = FactInfo.Factinfo()
-        factoid = factinfo.fcget(command,user)
+        factoid = FactInfo.FactInfo().fcget(command,user)
         if factoid:
             self.say(source,factoid.format(user))
         elif command == "slap":
