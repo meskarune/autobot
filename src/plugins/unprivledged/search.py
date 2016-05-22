@@ -34,7 +34,7 @@ def ddg(search):
         except:
             return
     if len(link) > 250:
-        return link[0:250] + '…'
+        return "{0}…".format(link[0:250])
     else:
         return link
 
@@ -43,14 +43,15 @@ def wiki(search):
     try:
         query = "https://en.wikipedia.org/w/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
         results = json.loads(get(query).text)
+        link = results[3][0]
         description = results[2][0]
         if description:
             if len(description) > 250:
-                data = description[0:250] + '…' + " - " + results[3][0]
+                data = "{0}… - {1}".format(description[0:250],link)
             else:
-                data = description + " - " + results[3][0]
+                data = "{0} - {1}".format(description,link)
         else:
-            data = results[3][0]
+            data = link
     except:
         return
     return data
@@ -61,13 +62,32 @@ def alwiki(search):
         query = "https://wiki.archlinux.org/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
         results = json.loads(get(query).text)
         description = results[1][0]
+        link = results[3][0]
         if description:
             if len(description) > 250:
-                data = description[0:250] + '…' + " - " + results[3][0]
+                data = "{0}… - {1}".format(description[0:250],link)
             else:
-                data = description + " - " + results[3][0]
+                data = "{0} - {1}".format(description,link)
         else:
-            data = results[3][0]
+            data = link
+    except:
+        return
+    return data
+
+def github(search):
+    """Search github repositories"""
+    try:
+        query = "https://api.github.com/search/repositories?q={0}".format(quote_plus(search))
+        results = json.loads(get(query).text)
+        description = results['items'][0]['description']
+        link = results['items'][0]['html_url']
+        if description:
+            if len(description) > 250:
+                data = "{0}… - {1}".format(description[0:250],link)
+            else:
+                data = "{0} - {1}".format(description,link)
+        else:
+            data = link
     except:
         return
     return data
