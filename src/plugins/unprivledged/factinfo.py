@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""A plugin for Autobot that returns a search result"""
+"""A plugin for Autobot that stores keyword/response pairs and returns them"""
 
 import json
+import os.path
 
 class FactInfo(object):
     def __init__(self):
         """Create the db if it doesn't exist"""
         self.schema = {"admins":[],"factinfo":{}}
         self.db = "factinfo.json"
-        if os.path.exists(db) is False:
+        if os.path.isfile(db) is False:
             """create the json file"""
             jsonData = schema
             with open(db, 'w') as outfile
