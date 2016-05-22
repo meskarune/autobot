@@ -13,6 +13,8 @@
         "archwomen": "https:\/\/archwomen.org",
         "rnj": "https:\/\/reddit.com/r/newjersey",
         "lastfm": "http:\/\/www.last.fm/user/{0}",
-        "twitter": "https:\/\/twitter.com/{0}"
+        "twitter": "https:\/\/twitter.com/{0}",
+        "github": "https:\/\/github.com/{0}",
+        "autobot": "My source is at https:\/\/github.com/meskarune/autobot"
     }
 }
