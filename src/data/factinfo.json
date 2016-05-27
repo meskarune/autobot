@@ -15,6 +15,9 @@
         "lastfm": "http:\/\/www.last.fm/user/{0}",
         "twitter": "https:\/\/twitter.com/{0}",
         "github": "https:\/\/github.com/{0}",
-        "autobot": "My source is at https:\/\/github.com/meskarune/autobot"
+        "autobot": "My source is at https:\/\/github.com/meskarune/autobot",
+        "source": "My source is at https:\/\/github.com/meskarune/autobot",
+        "<3": "❤ ",
+        "\u2764": "❤ "
     }
 }

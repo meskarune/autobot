@@ -252,6 +252,12 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         factoid = FactInfo.FactInfo().fcget(command,user)
         if factoid:
             self.say(source,factoid.format(user))
+        elif command == "devour":
+            if arguments is None or arguments.isspace():
+                self.do(source, "noms {0}".format(user))
+            else:
+                self.do(source, "takes a large bite out of {0}"
+                        .format(arguments.strip()))
         elif command == "slap":
             if arguments is None or arguments.isspace():
                 self.do(source, "slaps {0} around a bit with a large trout"
