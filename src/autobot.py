@@ -14,7 +14,7 @@ import irc.bot
 import codecs
 from threading import Thread, Timer
 from plugins.passive import url_announce, LogFile
-from plugins.unprivledged import search, FactInfo
+from plugins.unprivledged import search, FactInfo, dice
 
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
@@ -258,6 +258,13 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             else:
                 self.do(source, "takes a large bite out of {0}"
                         .format(arguments.strip()))
+        elif command == "dice":
+            if arguments is None or arguments.isspace():
+                self.say(source, "Please tell me how many sides the die "
+                         "should have. dice <num>")
+            else:
+                roll = dice.rollDie(arguments)
+                self.say(source, roll)
         elif command == "slap":
             if arguments is None or arguments.isspace():
                 self.do(source, "slaps {0} around a bit with a large trout"
