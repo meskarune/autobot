@@ -1,3 +1,4 @@
 autobot.conf
 *.pyc
 *.log
+data/*
