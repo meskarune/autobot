@@ -22,7 +22,7 @@ def ddg(search):
             return
     else:
         try:
-            site = get("http://duckduckgo.com/html/?q={0}&kl=us-en".format(search + " -site:yahoo.com")).text
+            site = get("http://duckduckgo.com/lite/?q={0}&kl=us-en".format(search + " -site:r.search.yahoo.com")).text
         except:
             return
         try:
@@ -30,7 +30,7 @@ def ddg(search):
         except:
             return
         try:
-            link = parsed.findAll('div', {'class': re.compile('links_main*')})[0].a['href']
+            link = parsed.findAll('a', {'class': 'result-link'})[0]['href']
         except:
             return
     if len(link) > 250:
