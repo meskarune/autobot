@@ -13,8 +13,8 @@ import select
 import irc.bot
 import codecs
 from threading import Thread, Timer
-from plugins.passive import url_announce, LogFile
-from plugins.unprivledged import search, FactInfo, dice
+from plugins.event import url_announce, LogFile
+from plugins.command import search, FactInfo, dice
 
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
