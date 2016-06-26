@@ -22,7 +22,8 @@ def ddg(search):
             return
     else:
         try:
-            site = get("http://duckduckgo.com/lite/?q={0}&kl=us-en".format(search + " -site:yahoo.com")).text
+            site =
+            get("http://duckduckgo.com/lite/?q={0}&kl=us-en".format(search + "%20-site:r.search.yahoo.com")).text
         except:
             return
         try:
