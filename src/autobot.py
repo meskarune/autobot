@@ -388,7 +388,6 @@ class TCPinput(Thread):
     def run(self):
         # For Linux Epoll
         #while True:
-             # for socket file descriptor , eventmask in 
         #    for sfd, ev in self.epoll.poll():
         #        if sfd == self.accept_socket.fileno():
         #            conn, addr = self.accept_socket.accept()
@@ -404,13 +403,13 @@ class TCPinput(Thread):
 
         # For BSD Kqueue
         while True:
-            events = self.kq.control([self.kevent], 1, None)
-            for event in events:
+            revents = self.kq.control([self.kevent], 1, None)
+            for event in revents:
                 if (event.filter == select.KQ_FILTER_READ):
                     conn, addr = self.accept_socket.accept()
                     self.stuff[conn.fileno()] = conn
                 else:
-                    conn = self.stuff[sfd]
+                    conn = self.stuff[event]
                     buf = conn.recv(1024)
                     if not buf:
                         conn.close()
