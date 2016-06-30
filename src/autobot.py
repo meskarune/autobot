@@ -13,8 +13,11 @@ import select
 import irc.bot
 import codecs
 from threading import Thread, Timer
+from jaraco.stream import buffer
 from plugins.event import url_announce, LogFile
 from plugins.command import search, FactInfo, dice
+
+irc.client.ServerConnection.buffer_class = buffer.LenientDecodingLineBuffer
 
 # Create our bot class
 class AutoBot(irc.bot.SingleServerIRCBot):
@@ -32,6 +35,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self._ssl = self.config.getboolean("irc", "ssl")
         self.channel_list = [channel.strip() for channel in self.config.get("irc", "channels").split(",")]
         self.prefix = self.config.get("bot", "prefix")
+
+        irc.client.ServerConnection.buffer_class = buffer.LenientDecodingLineBuffer
 
         # Connect to IRC server
         if self._ssl:
@@ -278,6 +283,11 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                          " try \"!rot13 message\"")
             else:
                 self.say(source, codecs.encode(arguments, 'rot13'))
+        elif command == "bloat":
+            if arguments is None:
+                self.say(source, "{0} is bloat.".format(user))
+            else:
+                self.say(source, "{0} is bloat".format(arguments.strip()))
         elif command == "ddg":
             query = search.ddg(arguments)
             self.say(source, query)
