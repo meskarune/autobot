@@ -8,11 +8,14 @@ import random
 def rollDie(sides):
     """Get a random number between 1 and N"""
     try:
-        count = int(sides) + 1
-        roll = random.randrange(1,count)
-        return roll
+        if int(sides) >= 2:
+            count = int(sides) + 1
+            roll = random.randrange(1,count)
+            return roll
+        else:
+            return "Please use a number greater than one"
     except ValueError:
-        message = "I'm sorry, that isn't a valid number, please tell me the number of sides you want. dice <num>"
+        message = "I'm sorry, I can't use that, please tell me the number of sides you want using whole positive integers. dice <num>"
         return message
     except:
         return

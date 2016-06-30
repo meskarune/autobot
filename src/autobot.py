@@ -63,10 +63,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.periodic.start()
 
         #Listen for data to announce to channels
-        #listenhost = self.config.get("tcp", "host")
-        #listenport = int(self.config.get("tcp", "port"))
-        #self.inputthread = TCPinput(self, listenhost, listenport)
-        #self.inputthread.start()
+        self.listenhost = self.config.get("tcp", "host")
+        self.listenport = int(self.config.get("tcp", "port"))
+        self.inputthread = TCPinput(self.connection, self, self.listenhost, self.listenport)
+        self.inputthread.start()
 
     def start(self):
         try:
@@ -143,8 +143,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                                .format(self.nick, self.nickpass))
             self.log_message("autobot", "-!-", "Identified to nickserv")
 
-    def on_disconnect(self, connection, event):
-        self._connected_checker()
+    #def on_disconnect(self, connection, event):
         #self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
 
     def on_pubnotice(self, connection, event):
@@ -242,7 +241,11 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """Log private messages and respond to command requests"""
         nick = event.source.nick
         message = event.arguments[0]
+
+        if nick not in self.logs:
+            self.logs[nick] = LogFile.LogFile(datetime.datetime.utcnow().strftime(self.log_scheme).format(channel=nick))
         self.log_message(nick, "<{0}>".format(nick), message)
+
         command = message.partition(' ')[0]
         arguments = message.partition(' ')[2].strip()
         if arguments == '':
@@ -304,10 +307,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             query = search.github(arguments)
             self.say(source, query)
         elif command == "help":
-            self.say(source, "Available commands: ![hello, goodbye, "
-                     "ugm, ugn, slap, rot13 <message>, "
-                     "ddg <search>, w <search>, alw <search>, disconnect, "
-                     "die, help]")
+            self.say(source, "Available commands: ![devour, dice <num>, "
+                     "bloat <message>, slap, rot13 <message>, "
+                     "ddg <search>, w <search>, alw <search>, gh <search>, "
+                     "disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
@@ -324,7 +327,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             connection.notice(user, "I'm sorry, {0}. I'm afraid I can't do that."
                               .format(user))
 
-    def announce(self, text):
+    def announce(self, connection, text):
         """Send notice to joined channels"""
         for channel in self.channel_list:
             self.connection.notice(channel, text)
@@ -354,40 +357,65 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         for log in self.logs:
             self.logs[log].close()
 
-#class TCPinput(Thread):
-#    """Listen for data on a port and send it to Autobot.announce"""
-#    def __init__(self, AutoBot, listenhost, listenport):
-#        Thread.__init__(self)
-#        self.setDaemon(1)
-#        self.AutoBot = AutoBot
-#        self.listenport = listenport
-#
-#        self.accept_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#        self.accept_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#        self.accept_socket.bind((listenhost, listenport))
-#        self.accept_socket.listen(10)
-#
-#        self.accept_socket.setblocking(False)
-#
-#        self.epoll = select.epoll()
-#        self.epoll.register(self.accept_socket.fileno(), select.EPOLLIN)
-#
-#        self.stuff = {}
-#
-#    def run(self):
-#        while True:
-#            for sfd, ev in self.epoll.poll():
-#                if sfd == self.accept_socket.fileno():
-#                    conn, addr = self.accept_socket.accept()
-#                    self.epoll.register(conn.fileno(), select.EPOLLIN)
-#                    self.stuff[conn.fileno()] = conn
-#                else:
-#                    conn = self.stuff[sfd]
-#                    buf = conn.recv(1024)
-#                    if not buf:
-#                        conn.close()
-#                        continue
-#                    self.AutoBot.announce(buf.decode("utf-8", "replace").strip())
+class TCPinput(Thread):
+    """Listen for data on a port and send it to Autobot.announce"""
+    def __init__(self, connection, AutoBot, listenhost, listenport):
+        Thread.__init__(self)
+        self.setDaemon(1)
+        self.AutoBot = AutoBot
+        self.listenport = listenport
+        self.connection = connection
+
+        self.accept_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.accept_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.accept_socket.bind((listenhost, listenport))
+        self.accept_socket.listen(10)
+
+        self.accept_socket.setblocking(False)
+
+        # For Linux use Epoll
+        #self.epoll = select.epoll()
+        #self.epoll.register(self.accept_socket.fileno(), select.EPOLLIN)
+
+        # For BSD use Kqueue
+        self.kq = select.kqueue()
+        self.kevent = select.kevent(self.accept_socket.fileno(),
+                               filter=select.KQ_FILTER_READ, # we are interested in reads)
+                               flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
+
+        self.stuff = {}
+
+    def run(self):
+        # For Linux Epoll
+        #while True:
+             # for socket file descriptor , eventmask in 
+        #    for sfd, ev in self.epoll.poll():
+        #        if sfd == self.accept_socket.fileno():
+        #            conn, addr = self.accept_socket.accept()
+        #            self.epoll.register(conn.fileno(), select.EPOLLIN)
+        #            self.stuff[conn.fileno()] = conn
+        #        else:
+        #            conn = self.stuff[sfd]
+        #            buf = conn.recv(1024)
+        #            if not buf:
+        #                conn.close()
+        #                continue
+        #            self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
+
+        # For BSD Kqueue
+        while True:
+            events = self.kq.control([self.kevent], 1, None)
+            for event in events:
+                if (event.filter == select.KQ_FILTER_READ):
+                    conn, addr = self.accept_socket.accept()
+                    self.stuff[conn.fileno()] = conn
+                else:
+                    conn = self.stuff[sfd]
+                    buf = conn.recv(1024)
+                    if not buf:
+                        conn.close()
+                        continue
+                    self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():
     bot = AutoBot()
