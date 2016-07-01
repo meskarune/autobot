@@ -62,9 +62,10 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.periodic.start()
 
         #Listen for data to announce to channels
-        self.listenhost = self.config.get("tcp", "host")
-        self.listenport = int(self.config.get("tcp", "port"))
-        TCPinput(self.connection, self, self.listenhost, self.listenport)
+        listenhost = self.config.get("tcp", "host")
+        listenport = int(self.config.get("tcp", "port"))
+        self.inputthread = TCPinput(self.connection, self, listenhost,listenport)
+        self.inputthread.start()
 
     def start(self):
         try:
@@ -357,16 +358,17 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 class TCPinput():
     """Listen for data on a port and send it to Autobot.announce"""
     def __init__(self, connection, AutoBot, listenhost, listenport):
-         self.connection = connection
-         self.AutoBot = AutoBot
-         self.listenhost = listenhost
-         self.listenport = listenport
-         server = ThreadedTCPServer((self.listenhost, self.listenport), ThreadedTCPRequestHandler)
-         try:
-             server.serve_forever()
+        Thread.__init__(self)
+        self.connection = connection
+        self.AutoBot = AutoBot
+        self.listenhost = listenhost
+        self.listenport = listenport
+        server = ThreadedTCPServer((self.listenhost, self.listenport), ThreadedTCPRequestHandler)
+        try:
+            server.serve_forever()
          except:
-             server.shutdown()
-             server.server_close()
+            server.shutdown()
+            server.server_close()
     def send(self, message):
         self.AutoBot.announce(self.connection, message.strip())
 
