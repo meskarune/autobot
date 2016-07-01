@@ -358,17 +358,17 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 class TCPinput():
     """Listen for data on a port and send it to Autobot.announce"""
     def __init__(self, connection, AutoBot, listenhost, listenport):
-        Thread.__init__(self)
+        Thread.__init__(self, target=self.server.serve_forever)
         self.connection = connection
         self.AutoBot = AutoBot
         self.listenhost = listenhost
         self.listenport = listenport
-        server = ThreadedTCPServer((self.listenhost, self.listenport), ThreadedTCPRequestHandler)
-        try:
-            server.serve_forever()
-         except:
-            server.shutdown()
-            server.server_close()
+        self.server = ThreadedTCPServer((self.listenhost, self.listenport), ThreadedTCPRequestHandler)
+        #try:
+        #    server.serve_forever()
+        #except:
+        #    server.shutdown()
+        #    server.server_close()
     def send(self, message):
         self.AutoBot.announce(self.connection, message.strip())
 
