@@ -8,10 +8,10 @@ import time
 import datetime
 import re
 import sys
+import asyncio
 import irc.bot
 import codecs
-import socketserver
-from threading import Thread, Timer
+from threading import Timer
 from jaraco.stream import buffer
 from plugins.event import url_announce, LogFile
 from plugins.command import search, FactInfo, dice
@@ -64,8 +64,15 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         #Listen for data to announce to channels
         listenhost = self.config.get("tcp", "host")
         listenport = int(self.config.get("tcp", "port"))
-        self.inputthread = TCPinput(self.connection, self, listenhost,listenport)
-        self.inputthread.start()
+        loop = asyncio.get_event_loop()
+        coro = asyncio.start_server(self.TCPRequestHandler, listenhost, listenport, loop=loop)
+        server = loop.run_until_complete(coro)
+        try:
+            loop.run_forever()
+        except:
+            server.close()
+        loop.run_until_complete(server.wait_closed())
+        loop.close()
 
     def start(self):
         try:
@@ -74,25 +81,26 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             self.close_logs()
             raise
 
-    def server_connect(self, connection, nick, name, network, port=6667, usessl=False):
-        """Connect to the IRC server"""
-        if usessl:
-            factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
-        else:
-            factory = irc.connectionFactory()
-        try:
-            irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick,
-                                                name, reconnection_interval=120,
-                                                connect_factory = factory)
-        except irc.client.ServerConnectionError:
-            sys.stderr.write(sys.exc_info()[1])
-
     def run(self, connection):
         """Set global handlers and connect to IRC"""
         #Allows the logging of users on quit
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
-        #self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
+    @asyncio.coroutine
+    def TCPRequestHandler(self, reader, writer):
+        data = yield from reader.read(100)
+        message = data.decode("utf-8")
+        self.announce(message)
+        writer.write("message sent")
+        yield from writer.drain()
+        writer.close()
+
+    def announce(self, text):
+        """Send notice to joined channels"""
+        for channel in self.channel_list:
+            self.connection.notice(channel, text)
+            self.log_message(channel, "-!-", "(notice) {0}: {1}"
+                             .format(self.connection.get_nickname(), text))
 
     def say(self, target, text):
         """Send message to IRC and log it"""
@@ -325,13 +333,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             connection.notice(user, "I'm sorry, {0}. I'm afraid I can't do that."
                               .format(user))
 
-    def announce(self, connection, text):
-        """Send notice to joined channels"""
-        for channel in self.channel_list:
-            self.connection.notice(channel, text)
-            self.log_message(channel, "-!-", "(notice) {0}: {1}"
-                             .format(self.connection.get_nickname(), text))
-
     def log_message(self, channel, nick, message):
         """Create IRC logs"""
         try:
@@ -354,41 +355,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         """ Close all open log files"""
         for log in self.logs:
             self.logs[log].close()
-
-class TCPinput(Thread):
-    """Listen for data on a port and send it to Autobot.announce"""
-    def __init__(self, connection, AutoBot, listenhost, listenport):
-        Thread.__init__(self)
-        #Thread.__init__(self, target=self.server.serve_forever)
-        self.connection = connection
-        self.AutoBot = AutoBot
-        self.listenhost = listenhost
-        self.listenport = listenport
-    def run(self):
-        self.server = ThreadedTCPServer((self.listenhost, self.listenport), ThreadedTCPRequestHandler)
-        try:
-            self.server.serve_forever()
-        except:
-            self.server.shutdown()
-            self.server.server_close()
-    def send(self, message):
-        self.AutoBot.announce(self.connection, message)
-
-class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
-    """ Echo data back in uppercase """
-    def handle(self):
-        self.TCPinput = TCPinput
-        data = str(self.request.recv(1024), 'utf-8').strip()
-        if data is not None:
-            self.TCPinput.send(data)
-        self.request.close()
-
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    daemon_threads = True
-    allow_reuse_address = True
-
-    def __init__(self, server_address, RequestHandlerClass):
-        socketserver.TCPServer.__init__(self, server_address, RequestHandlerClass)
 
 def main():
     bot = AutoBot()
