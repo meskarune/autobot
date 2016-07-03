@@ -3,8 +3,6 @@
 
 import socketserver
 import threading
-from threading import Thread
-
 
 class announce():
     """ Return message uppercase """
@@ -12,6 +10,7 @@ class announce():
         """ Start the tcp server """
         new_thread = TCPserver(self, "localhost", 2000)
         new_thread.start()
+        print("started tcp listener")
     def uppercase(message):
         print (message.upper())
 
@@ -21,7 +20,6 @@ class TCPserver(threading.Thread):
         self.announce = announce
         self.host = host
         self.port = port
-        self.threads = []
     def run(self):
         server = ThreadedTCPServer((self.host, self.port), ThreadedTCPRequestHandler)
         try:
@@ -34,10 +32,10 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     """ Echo data back in uppercase """
     def handle(self):
         self.announce = announce
-        data = str(self.request.recv(1024), 'utf-8')
+        data = self.request.recv(1024)
         cur_thread = threading.current_thread()
         if data is not None:
-            self.announce.uppercase(data)
+            self.announce.uppercase(data.decode("utf-8"))
             self.request.send(bytes("message recieved from {0}".format(cur_thread.name), 'utf-8'))
         self.request.close()
 
@@ -53,11 +51,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-#server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
-#server_thread = threading.Thread(target=server.serve_forever)
-#server_thread.daemon = True
-#server_thread.start()
-#print("Server loop running in thread:", server_thread.name)
-#server.shutdown()
-#server.server_close()
