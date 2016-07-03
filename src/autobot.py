@@ -345,6 +345,7 @@ class TCPserver(threading.Thread):
         self.AutoBot = AutoBot
         self.host = host
         self.port = port
+        sys.stderr.write("Starting TCP listener.\n")
     def run(self):
         server = ThreadedTCPServer((self.host, self.port), ThreadedTCPRequestHandler)
         try:

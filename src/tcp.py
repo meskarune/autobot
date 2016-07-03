@@ -8,7 +8,10 @@ class announce():
     """ Return message uppercase """
     def __init__(self):
         """ Start the tcp server """
-        new_thread = TCPserver(self, "localhost", 2000)
+        host = "localhost"
+        port = 8000
+        new_thread = TCPserver(self, host, port)
+        #new_thread = TCPserver(self, "localhost", 2000)
         new_thread.start()
         print("started tcp listener")
     def uppercase(message):
@@ -35,7 +38,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         data = self.request.recv(1024)
         cur_thread = threading.current_thread()
         if data is not None:
-            self.announce.uppercase(data.decode("utf-8"))
+            self.announce.uppercase(data.decode("utf-8") + "/n")
             self.request.send(bytes("message recieved from {0}".format(cur_thread.name), 'utf-8'))
         self.request.close()
 
