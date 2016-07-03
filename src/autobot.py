@@ -355,27 +355,32 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         for log in self.logs:
             self.logs[log].close()
 
-class TCPinput():
+class TCPinput(Thread):
     """Listen for data on a port and send it to Autobot.announce"""
     def __init__(self, connection, AutoBot, listenhost, listenport):
+        Thread.__init__(self)
+        #Thread.__init__(self, target=self.server.serve_forever)
         self.connection = connection
         self.AutoBot = AutoBot
         self.listenhost = listenhost
         self.listenport = listenport
+    def run(self):
         self.server = ThreadedTCPServer((self.listenhost, self.listenport), ThreadedTCPRequestHandler)
-        server_thread = Thread(self, target=self.server.serve_forever)
-        server_thread.daemon = True
-        server_thread.start()
+        try:
+            self.server.serve_forever()
+        except:
+            self.server.shutdown()
+            self.server.server_close()
     def send(self, message):
-        self.AutoBot.announce(self.connection, message.strip())
+        self.AutoBot.announce(self.connection, message)
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     """ Echo data back in uppercase """
     def handle(self):
         self.TCPinput = TCPinput
-        data = str(self.request.recv(1024), 'utf-8')
+        data = str(self.request.recv(1024), 'utf-8').strip()
         if data is not None:
-            self.TCPinput.send(data.strip())
+            self.TCPinput.send(data)
         self.request.close()
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

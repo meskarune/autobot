@@ -1,29 +1,40 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import asyncio
 
-@asyncio.coroutine
-def handle_echo(reader, writer):
-    data = yield from reader.read(100)
-    message = data.decode()
-    addr = writer.get_extra_info('peername')
-    print("Received %r from %r" % (message, addr))
 
-    print("Send: %r" % message)
-    writer.write(data)
-    yield from writer.drain()
+class announce():
+    """ Return message uppercase """
+    def __init__(self):
+        """ Start the tcp server """
+        host = "localhost"
+        port = 2000
+        loop = asyncio.get_event_loop()
+        coro = asyncio.start_server(self.TCPRequestHandler, host, port, loop=loop)
+        server = loop.run_until_complete(coro)
+        try:
+            loop.run_forever()
+        except:
+            server.close()
+        loop.run_until_complete(server.wait_closed())
+        loop.close()
 
-    print("Close the client socket")
-    writer.close()
+    @asyncio.coroutine
+    def TCPRequestHandler(self, reader, writer):
+        data = yield from reader.read(100)
+        message = data.decode("utf-8")
+        addr = writer.get_extra_info('peername')
+        self.msg("Received {0} from {1}".format(message,addr))
+        writer.write(data.upper())
+        yield from writer.drain()
+        writer.close()
 
-loop = asyncio.get_event_loop()
-coro = asyncio.start_server(handle_echo, '127.0.0.1', 8888, loop=loop)
-server = loop.run_until_complete(coro)
+    def msg(self, message):
+        print (message)
 
-# Serve requests until Ctrl+C is pressed
-print('Serving on {}'.format(server.sockets[0].getsockname()))
-try:
-    loop.run_forever()
-except KeyboardInterrupt:
-    server.close()
+def main():
+    announce()
 
-loop.run_until_complete(server.wait_closed())
-loop.close()
+if __name__ == "__main__":
+    main()
