@@ -9,7 +9,7 @@ class announce():
     def __init__(self):
         """ Start the tcp server """
         host = "localhost"
-        port = 8000
+        port = 4455
         new_thread = TCPserver(self, host, port)
         #new_thread = TCPserver(self, "localhost", 2000)
         new_thread.start()

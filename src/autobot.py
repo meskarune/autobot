@@ -8,6 +8,7 @@ import time
 import datetime
 import re
 import sys
+import codecs
 import irc.bot
 import threading
 import socketserver
@@ -63,7 +64,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         #Listen for data to announce to channels
         listenhost = self.config.get("tcp", "host")
         listenport = int(self.config.get("tcp", "port"))
-        new_thread = TCPserver(self, listenhost, listenport)
+        new_thread = TCPserver(self, self.connection, listenhost, listenport)
         new_thread.start()
 
     def start(self):
@@ -78,7 +79,7 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         #Allows the logging of users on quit
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
-    def announce(self, text):
+    def announce(self, connection, text):
         """Send notice to joined channels"""
         for channel in self.channel_list:
             self.connection.notice(channel, text)
@@ -342,33 +343,81 @@ class AutoBot(irc.bot.SingleServerIRCBot):
 class TCPserver(threading.Thread):
     def __init__(self, announce, host, port):
         threading.Thread.__init__(self)
-        self.AutoBot = AutoBot
+        self.announce = announce
         self.host = host
         self.port = port
-        sys.stderr.write("Starting TCP listener.\n")
-    def run(self):
-        server = ThreadedTCPServer((self.host, self.port), ThreadedTCPRequestHandler)
+
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._socket.setblocking(0)
+        self._socket.bind((self.host, self.port))
+        self._socket.listen(5)
+
+        self.kq = select.kqueue()
+
+        self.kevent = [
+                   select.kevent(self._socket.fileno(),
+                   filter=select.KQ_FILTER_READ,
+                   flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
+        ]
+
+        self.connections = {}
+
+   def run(self):
         try:
-            server.serve_forever()
-        except KeyboardInterrupt:
-            server.shutdown()
-            server.server_close()
+            while True:
+                events = self.kq.control(self.kevent, 5, None)
+                for event in events:
+                    if event.ident == self._socket.fileno():
+                        conn, addr = self._socket.accept()
+                        new_event = [
+                                 select.kevent(conn.fileno(),
+                                 filter=select.KQ_FILTER_READ,
+                                 flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
+                        ]
+                        self.kq.control(new_event, 0, 0)
+                        self.connections[conn.fileno()] = conn
+                    else:
+                        conn = self.connections[event.ident]
+                        buf = conn.recv(1024)
+                        if not buf:
+                            conn.close()
+                            continue
+                        self.announce.uppercase(buf.decode("utf-8", "replace").strip())
 
-class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
-    """ Echo data back in uppercase """
-    def handle(self):
-        self.AutoBot = AutoBot
-        data = self.request.recv(1024)
-        if data is not None:
-            self.AutoBot.announce(data.decode("utf-8"))
-        self.request.close()
-
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    daemon_threads = True
-    allow_reuse_address = True
-
-    def __init__(self, server_address, RequestHandlerClass):
-        socketserver.TCPServer.__init__(self, server_address, RequestHandlerClass)
+#class TCPinput (Thread):
+#    def __init__(self, connection, AutoBot, listenhost, listenport):
+#        Thread.__init__(self)
+#        self.setDaemon(1)
+#        self.AutoBot = AutoBot
+#        self.listenport = listenport
+#        self.connection = connection
+#
+#        self.accept_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#        self.accept_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#        self.accept_socket.bind((listenhost, listenport))
+#        self.accept_socket.listen(10)
+#        self.accept_socket.setblocking(False)
+#
+#        self.epoll = select.epoll()
+#        self.epoll.register(self.accept_socket.fileno(), select.EPOLLIN)
+#
+#        self.stuff = {}
+#
+#    def run(self):
+#        while True:
+#            for sfd, ev in self.epoll.poll():
+#                if sfd == self.accept_socket.fileno():
+#                    conn, addr = self.accept_socket.accept()
+#                    self.epoll.register(conn.fileno(), select.EPOLLIN)
+#                    self.stuff[conn.fileno()] = conn
+#                else:
+#                    conn = self.stuff[sfd]
+#                    buf = conn.recv(1024)
+#                    if not buf:
+#                        conn.close()
+#                        continue
+#                    self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():
     bot = AutoBot()
