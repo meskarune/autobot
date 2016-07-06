@@ -16,9 +16,11 @@ class announce():
         try:
             print("started tcp listener")
             loop.run_forever()
-        except:
-            print("Exception, asking sever to terminate")
-            server.close()
+        except KeyboardInterrupt:
+            pass
+        #except:
+        #    print("Exception, asking sever to terminate")
+        #    server.close()
         print("waiting on wait_closed()")
         loop.run_until_complete(server.wait_closed())
         print("waited on wait_closed()")

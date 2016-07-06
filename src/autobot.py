@@ -342,9 +342,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             self.logs[log].close()
 
 class TCPserver(threading.Thread):
-    def __init__(self, announce, host, port):
+    def __init__(self, AutoBot, host, port):
         threading.Thread.__init__(self)
-        self.announce = announce
+        self.Autobot = AutoBot
         self.host = host
         self.port = port
 
@@ -364,7 +364,7 @@ class TCPserver(threading.Thread):
 
         self.connections = {}
 
-   def run(self):
+    def run(self):
         try:
             while True:
                 events = self.kq.control(self.kevent, 5, None)
@@ -384,41 +384,7 @@ class TCPserver(threading.Thread):
                         if not buf:
                             conn.close()
                             continue
-                        self.announce.uppercase(buf.decode("utf-8", "replace").strip())
-
-#class TCPinput (Thread):
-#    def __init__(self, connection, AutoBot, listenhost, listenport):
-#        Thread.__init__(self)
-#        self.setDaemon(1)
-#        self.AutoBot = AutoBot
-#        self.listenport = listenport
-#        self.connection = connection
-#
-#        self.accept_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#        self.accept_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#        self.accept_socket.bind((listenhost, listenport))
-#        self.accept_socket.listen(10)
-#        self.accept_socket.setblocking(False)
-#
-#        self.epoll = select.epoll()
-#        self.epoll.register(self.accept_socket.fileno(), select.EPOLLIN)
-#
-#        self.stuff = {}
-#
-#    def run(self):
-#        while True:
-#            for sfd, ev in self.epoll.poll():
-#                if sfd == self.accept_socket.fileno():
-#                    conn, addr = self.accept_socket.accept()
-#                    self.epoll.register(conn.fileno(), select.EPOLLIN)
-#                    self.stuff[conn.fileno()] = conn
-#                else:
-#                    conn = self.stuff[sfd]
-#                    buf = conn.recv(1024)
-#                    if not buf:
-#                        conn.close()
-#                        continue
-#                    self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
+                        self.AutoBot.announce(self, self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():
     bot = AutoBot()
