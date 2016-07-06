@@ -365,26 +365,25 @@ class TCPserver(threading.Thread):
         self.connections = {}
 
     def run(self):
-        try:
-            while True:
-                events = self.kq.control(self.kevent, 5, None)
-                for event in events:
-                    if event.ident == self._socket.fileno():
-                        conn, addr = self._socket.accept()
-                        new_event = [
-                                 select.kevent(conn.fileno(),
-                                 filter=select.KQ_FILTER_READ,
-                                 flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
-                        ]
-                        self.kq.control(new_event, 0, 0)
-                        self.connections[conn.fileno()] = conn
-                    else:
-                        conn = self.connections[event.ident]
-                        buf = conn.recv(1024)
-                        if not buf:
-                            conn.close()
-                            continue
-                        self.AutoBot.announce(self, self.connection, buf.decode("utf-8", "replace").strip())
+        while True:
+            events = self.kq.control(self.kevent, 5, None)
+            for event in events:
+                if event.ident == self._socket.fileno():
+                    conn, addr = self._socket.accept()
+                    new_event = [
+                             select.kevent(conn.fileno(),
+                             filter=select.KQ_FILTER_READ,
+                             flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
+                    ]
+                    self.kq.control(new_event, 0, 0)
+                    self.connections[conn.fileno()] = conn
+                else:
+                    conn = self.connections[event.ident]
+                    buf = conn.recv(1024)
+                    if not buf:
+                        conn.close()
+                        continue
+                    self.AutoBot.announce(self, self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():
     bot = AutoBot()
