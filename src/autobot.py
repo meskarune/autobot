@@ -11,7 +11,8 @@ import sys
 import codecs
 import irc.bot
 import threading
-import socketserver
+import socket
+import select
 from jaraco.stream import buffer
 from plugins.event import url_announce, LogFile
 from plugins.command import search, FactInfo, dice
