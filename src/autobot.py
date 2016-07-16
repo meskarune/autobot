@@ -11,8 +11,8 @@ import sys
 import codecs
 import irc.bot
 import threading
-import socket
-import select
+#import socket
+#import select
 from jaraco.stream import buffer
 from plugins.event import url_announce, LogFile
 from plugins.command import search, FactInfo, dice
@@ -65,8 +65,8 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         #Listen for data to announce to channels
         listenhost = self.config.get("tcp", "host")
         listenport = int(self.config.get("tcp", "port"))
-        new_thread = TCPserver(self, self.connection, listenhost, listenport)
-        new_thread.start()
+        #new_thread = TCPserver(self, self.connection, listenhost, listenport)
+        #new_thread.start()
 
     def start(self):
         try:
@@ -341,50 +341,52 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         for log in self.logs:
             self.logs[log].close()
 
-class TCPserver(threading.Thread):
-    def __init__(self, AutoBot, host, port):
-        threading.Thread.__init__(self)
-        self.Autobot = AutoBot
-        self.host = host
-        self.port = port
-
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._socket.setblocking(0)
-        self._socket.bind((self.host, self.port))
-        self._socket.listen(5)
-
-        self.kq = select.kqueue()
-
-        self.kevent = [
-                   select.kevent(self._socket.fileno(),
-                   filter=select.KQ_FILTER_READ,
-                   flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
-        ]
-
-        self.connections = {}
-
-    def run(self):
-        while True:
-            events = self.kq.control(self.kevent, 5, None)
-            for event in events:
-                if event.ident == self._socket.fileno():
-                    conn, addr = self._socket.accept()
-                    new_event = [
-                             select.kevent(conn.fileno(),
-                             filter=select.KQ_FILTER_READ,
-                             flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
-                    ]
-                    self.kq.control(new_event, 0, 0)
-                    self.connections[conn.fileno()] = conn
-                else:
-                    conn = self.connections[event.ident]
-                    buf = conn.recv(1024)
-                    if not buf:
-                        conn.close()
-                        continue
-                    self.AutoBot.announce(self, self.connection, buf.decode("utf-8", "replace").strip())
-
+#class TCPserver(threading.Thread):
+#    def __init__(self, AutoBot, connection,  host, port):
+#        threading.Thread.__init__(self)
+#        self.Autobot = AutoBot
+#        self.connection = connection
+#        self.host = host
+#        self.port = port
+#
+#        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#        self._socket.setblocking(0)
+#        self._socket.bind((self.host, self.port))
+#        self._socket.listen(5)
+#
+#        self.kq = select.kqueue()
+#
+#        self.kevent = [
+#                   select.kevent(self._socket.fileno(),
+#                   filter=select.KQ_FILTER_READ,
+#                   flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
+#        ]
+#
+#        self.connections = {}
+#
+#    def run(self):
+#        while True:
+#            events = self.kq.control(self.kevent, 5, None)
+#            for event in events:
+#                if event.ident == self._socket.fileno():
+#                    conn, addr = self._socket.accept()
+#                    new_event = [
+#                             select.kevent(conn.fileno(),
+#                             filter=select.KQ_FILTER_READ,
+#                             flags=select.KQ_EV_ADD | select.KQ_EV_ENABLE)
+#                    ]
+#                    self.kq.control(new_event, 0, 0)
+#                    self.connections[conn.fileno()] = conn
+#                else:
+#                    conn = self.connections[event.ident]
+#                    buf = conn.recv(1024)
+#                    if not buf:
+#                        conn.close()
+#                        continue
+#                    self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
+#
+#
 def main():
     bot = AutoBot()
     bot.start()
