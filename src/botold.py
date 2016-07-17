@@ -1,54 +1,49 @@
 #!/usr/bin/env python
 
-import configparser, socket, select, sys, ssl, time
+import codecs, configparser, re, select, socket, ssl, sys, time
 import irc.bot
 from threading import Thread
+from jaraco.stream import buffer
+from plugins.event import url_announce
+from plugins.command import search, FactInfo, dice
+
+irc.client.ServerConnection.buffer_class = buffer.LenientDecodingLineBuffer
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
-    def __init__(self, nick, name, channels, network, listenhost, listenport, port=6667, usessl=False):
-        if usessl:
+    def __init__(self):
+        """Set variables listen for input on a port"""
+        # Read from configuration file
+        self.config = configparser.ConfigParser()
+        self.config.read("autobot.conf")
+
+        self.nick = self.config.get("irc", "nick")
+        self.nickpass = self.config.get("irc", "nickpass")
+        self.name = self.config.get("irc", "name")
+        self.network = self.config.get("irc", "network")
+        self.port = int(self.config.get("irc", "port"))
+        self._ssl = self.config.getboolean("irc", "ssl")
+        self.channel_list = [channel.strip() for channel in self.config.get("irc", "channels").split(",")]
+        self.prefix = self.config.get("bot", "prefix")
+
+        # Connect to IRC server
+        if self._ssl:
             factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
         else:
-            factory = irc.connection.Factory()
-        irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, connect_factory = factory)
+            factory = irc.connectionFactory()
+        try:
+            irc.bot.SingleServerIRCBot.__init__(self, [(self.network, self.port)],
+                                                self.nick, self.name,
+                                                reconnection_interval=120,
+                                                connect_factory = factory)
+        except irc.client.ServerConnectionError:
+            sys.stderr.write(sys.exc_info()[1])
 
-        self.nick = nick
-        self.channel_list = channels
-
+        #Listen for data to announce to channels
+        listenhost = self.config.get("tcp", "host")
+        listenport = int(self.config.get("tcp", "port"))
         self.inputthread = TCPinput(self, listenhost, listenport)
         self.inputthread.start()
-
-    def on_nicknameinuse(self, connection, event):
-        connection.nick(connection.get_nickname() + "_")
-
-    def on_welcome ( self, connection, event ):
-        for channel in self.channel_list:
-            connection.join(channel)
-
-    def on_pubmsg (self, connection, event):
-        channel = event.target
-        if event.arguments[0].startswith("!"):
-            if self.channels[channel].is_oper(event.source.nick):
-                self.do_command(event, True, channel, event.arguments[0].lstrip("!").lower())
-            else:
-                self.do_command(event, False, channel, event.arguments[0].lstrip("!").lower())
-
-    def do_command (self, event, isOper, source, command):
-        user = event.source.nick
-        if command == "hello":
-            self.say(source, "hello " + user)
-        elif command == "goodbye":
-            self.say(source, "goodbye " + user)
-        elif command == "help":
-            self.say(source, "Available commands: ![hello, goodbye, die, help]")
-        elif command == "die":
-            if isOper:
-                self.die(msg="Bye, cruel world!")
-            else:
-                self.say(source, "You don't have permission to do that")
-        else:
-            self.connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
     def announce (self, text):
         for channel in self.channel_list:
@@ -57,6 +52,164 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
     def say(self, target, text):
         """Send message to IRC and log it"""
         self.connection.privmsg(target, text)
+
+    def do(self, target, text):
+        """Send action event to IRC and log it"""
+        self.connection.action(target, text)
+
+    def on_nicknameinuse(self, connection, event):
+        connection.nick(connection.get_nickname() + "_")
+
+    def on_welcome ( self, connection, event ):
+        for channel in self.channel_list:
+            connection.join(channel)
+        if self.nickpass and connection.get_nickname() != self.nick:
+            connection.privmsg("nickserv", "ghost {0} {1}"
+                               .format(self.nick, self.nickpass))
+    def get_version(self):
+        """CTCP version reply"""
+        return "Autobot IRC bot"
+
+    def on_privnotice(self, connection, event):
+        """Identify to nickserv and log privnotices"""
+        if not event.source:
+            return
+        source = event.source.nick
+        if (source and source.lower() == "nickserv"
+                and event.arguments[0].lower().find("identify") >= 0
+                and self.nickpass and self.nick == connection.get_nickname()):
+
+            connection.privmsg("nickserv", "identify {0} {1}"
+                               .format(self.nick, self.nickpass))
+
+    def on_kick(self, connection, event):
+        """Rejoin channels if bot is kicked"""
+        kicked_nick = event.arguments[0]
+        kicker = event.source.nick
+        if kicked_nick == self.nick:
+            time.sleep(10) #waits 10 seconds
+            for channel in self.channel_list:
+                connection.join(channel)
+
+    def on_join(self, connection, event):
+        """Announce joins"""
+        if event.source.nick == self.nick:
+            self.say(event.target, "Autobots, roll out!")
+
+    def on_privmsg(self, connection, event):
+        """Respond to command requests in private messages"""
+        nick = event.source.nick
+        message = event.arguments[0]
+
+        command = message.partition(' ')[0]
+        arguments = message.partition(' ')[2].strip()
+        if arguments == '':
+            self.do_command(event, False, nick, command, None)
+        else:
+            self.do_command(event, False, nick, command, arguments)
+
+    def on_pubmsg(self, connection, event):
+        """Respond to command requests in public channels"""
+        channel = event.target
+        nick = event.source.nick
+        message = event.arguments[0]
+
+        url_regex = re.compile(
+            r'(?i)\b((?:https?://|[a-z0-9.\-]+[.][a-z]{2,4}/)'
+            r'(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))'
+            r'+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|'
+            r'''[^\s`!()\[\]{};:'".,<>?«»“”‘’]))''', re.IGNORECASE)
+
+        if url_regex.search(message):
+            message_list = [element for element in message.split(' ')
+                            if url_regex.match(element)]
+            for element in message_list:
+                title = url_announce.parse_url(element)
+                if title is not None:
+                    self.say(channel, title)
+
+        command_regex = re.compile(
+            r'^(' + re.escape(self.nick) + '( |[:,] ?)'
+            r'|' + re.escape(self.prefix) + ')'
+            r'([^ ]*)( (.*))?$', re.IGNORECASE)
+
+        if command_regex.match(message):
+            command = command_regex.match(message).group(3)
+            arguments = command_regex.match(message).group(5)
+            self.do_command(event, self.channels[channel].is_oper(nick),
+                            channel, command, arguments)
+
+    def do_command(self, event, isOper, source, command, arguments):
+        """Commands the bot will respond to"""
+        user = event.source.nick
+        factoid = FactInfo.FactInfo().fcget(command,user)
+        if factoid:
+            self.say(source,factoid.format(user))
+        elif command == "devour":
+            if arguments is None or arguments.isspace():
+                self.do(source, "noms {0}".format(user))
+            else:
+                self.do(source, "takes a large bite out of {0}"
+                        .format(arguments.strip()))
+        elif command == "dice":
+            if arguments is None or arguments.isspace():
+                self.say(source, "Please tell me how many sides the die "
+                         "should have. dice <num>")
+            else:
+                roll = dice.rollDie(arguments)
+                self.say(source, roll)
+        elif command == "slap":
+            if arguments is None or arguments.isspace():
+                self.do(source, "slaps {0} around a bit with a large trout"
+                        .format(user))
+            else:
+                self.do(source, "slaps {0} around a bit with a large trout."
+                        .format(arguments.strip()))
+        elif command == "rot13":
+            if arguments is None:
+                self.say(source, "I'm sorry, I need a message to cipher,"
+                         " try \"!rot13 message\"")
+            else:
+                self.say(source, codecs.encode(arguments, 'rot13'))
+        elif command == "bloat":
+            if arguments is None:
+                self.say(source, "{0} is bloat.".format(user))
+            else:
+                self.say(source, "{0} is bloat".format(arguments.strip()))
+        elif command == "ddg":
+            query = search.ddg(arguments)
+            self.say(source, query)
+            title = url_announce.parse_url(query)
+            if title is not None:
+                self.say(source, title)
+        elif command == "w":
+            query = search.wiki(arguments)
+            self.say(source, query)
+        elif command == "alw":
+            query = search.alwiki(arguments)
+            self.say(source, query)
+        elif command == "gh":
+            query = search.github(arguments)
+            self.say(source, query)
+        elif command == "help":
+            self.say(source, "Available commands: ![devour, dice <num>, "
+                     "bloat <message>, slap, rot13 <message>, "
+                     "ddg <search>, w <search>, alw <search>, gh <search>, "
+                     "disconnect, die, help]")
+        elif command == "disconnect":
+            if isOper:
+                self.disconnect(msg="I'll be back!")
+            else:
+                self.say(source, "You don't have permission to do that")
+        elif command == "die":
+            if isOper:
+                #new_thread.join()
+                self.die(msg="Bye, cruel world!")
+            else:
+                self.say(source, "You don't have permission to do that")
+        else:
+            self.connection.notice(user, "I'm sorry, {0}. I'm afraid I can't do that."
+                              .format(user))
 
 class TCPinput (Thread):
     def __init__(self, AutoBot, listenhost, listenport):
@@ -132,16 +285,7 @@ class TCPinput (Thread):
 #                    self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():
-    network = "irc.freenode.net"
-    port = 7000
-    channels = ["##test","##meskarune"]
-    nick = "autobot2001"
-    name = "AutoBot"
-    listenhost = "localhost"
-    listenport = 8888
-    _ssl = True
-
-    bot = AutoBot (nick, name, channels, network, listenhost, listenport, port, _ssl)
+    bot = AutoBot ()
     bot.start()
 
 if __name__ == "__main__":
