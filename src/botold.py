@@ -16,7 +16,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         self.nick = nick
         self.channel_list = channels
 
-        self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
+        self.inputthread = TCPinput(self, listenhost, listenport)
         self.inputthread.start()
 
     def on_nicknameinuse(self, connection, event):
@@ -50,21 +50,20 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         else:
             self.connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
-    def announce (self, connection, text):
+    def announce (self, text):
         for channel in self.channel_list:
-            connection.notice(channel, text)
+            self.connection.notice(channel, text)
 
     def say(self, target, text):
         """Send message to IRC and log it"""
         self.connection.privmsg(target, text)
 
 class TCPinput (Thread):
-    def __init__(self, connection, AutoBot, listenhost, listenport):
+    def __init__(self, AutoBot, listenhost, listenport):
         Thread.__init__(self)
         self.setDaemon(1)
         self.AutoBot = AutoBot
         self.listenport = listenport
-        self.connection = connection
 
         self.accept_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.accept_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -112,7 +111,7 @@ class TCPinput (Thread):
                     if not buf:
                         conn.close()
                         continue
-                    self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
+                    self.AutoBot.announce(buf.decode("utf-8", "replace").strip())
 
 #        #for linux
 #        while True:
