@@ -6,17 +6,15 @@ from threading import Thread
 
 # Create our bot class
 class AutoBot ( irc.bot.SingleServerIRCBot ):
-    def __init__(self, nick, name, nickpass, channels, network, listenhost, listenport, port=6667, usessl=False):
+    def __init__(self, nick, name, channels, network, listenhost, listenport, port=6667, usessl=False):
         if usessl:
             factory = irc.connection.Factory(wrapper=ssl.wrap_socket)
         else:
             factory = irc.connection.Factory()
-
         irc.bot.SingleServerIRCBot.__init__(self, [(network, port)], nick, name, connect_factory = factory)
 
         self.nick = nick
         self.channel_list = channels
-        self.nickpass = nickpass
 
         self.inputthread = TCPinput(self.connection, self, listenhost, listenport)
         self.inputthread.start()
@@ -27,22 +25,6 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
     def on_welcome ( self, connection, event ):
         for channel in self.channel_list:
             connection.join(channel)
-        if self.nickpass and connection.get_nickname() != self.nick:
-            connection.privmsg("nickserv", "ghost %s %s" % (self.nick, self.nickpass))
-
-    def on_privnotice(self, connection, event):
-        source = event.source.nick
-        if source and source.lower()  == "nickserv":
-            if event.arguments[0].lower().find("identify") >= 0:
-                if self.nickpass and self.nick == connection.get_nickname():
-                    connection.privmsg("nickserv", "identify %s %s" % (self.nick, self.nickpass))
-
-    def on_kick(self, connection, event):
-        kickedNick = event.arguments[0]
-        if kickedNick == self.nick:
-            time.sleep(10) #waits 10 seconds
-            for channel in self.channel_list:
-                connection.join(channel)
 
     def on_pubmsg (self, connection, event):
         channel = event.target
@@ -52,37 +34,29 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             else:
                 self.do_command(event, False, channel, event.arguments[0].lstrip("!").lower())
 
-    def on_privmsg(self, connection, event):
-        if event.arguments[0].startswith("!"):
-            self.do_command(event, False, event.source.nick, event.arguments[0].lstrip("!").lower())
-
     def do_command (self, event, isOper, source, command):
         user = event.source.nick
-        connection = self.connection
         if command == "hello":
-            connection.privmsg(source, "hello " + user)
+            self.say(source, "hello " + user)
         elif command == "goodbye":
-            connection.privmsg(source, "goodbye " + user)
-        elif command == "slap":
-            connection.action(source, self.nick + " slaps " + user + " around a bit with a large trout")
+            self.say(source, "goodbye " + user)
         elif command == "help":
-            connection.privmsg(source, "Available commands: ![hello, goodbye, slap, disconnect, die, help]")
-        elif command == "disconnect":
-            if isOper:
-                self.disconnect(msg="I'll be back!")
-            else:
-                connection.privmsg(source, "You don't have permission to do that")
+            self.say(source, "Available commands: ![hello, goodbye, die, help]")
         elif command == "die":
             if isOper:
                 self.die(msg="Bye, cruel world!")
             else:
-                connection.privmsg(source, "You don't have permission to do that")
+                self.say(source, "You don't have permission to do that")
         else:
-            connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
+            self.connection.notice( user, "I'm sorry, " + user + ". I'm afraid I can't do that")
 
     def announce (self, connection, text):
         for channel in self.channel_list:
             connection.notice(channel, text)
+
+    def say(self, target, text):
+        """Send message to IRC and log it"""
+        self.connection.privmsg(target, text)
 
 class TCPinput (Thread):
     def __init__(self, connection, AutoBot, listenhost, listenport):
@@ -159,19 +133,16 @@ class TCPinput (Thread):
 #                    self.AutoBot.announce(self.connection, buf.decode("utf-8", "replace").strip())
 
 def main():
-    config = configparser.ConfigParser()
-    config.read("autobot.conf")
-    network = config.get("irc", "network")
-    port = int(config.get("irc", "port"))
+    network = "irc.freenode.net"
+    port = 7000
     channels = ["##test","##meskarune"]
     nick = "autobot2001"
-    nickpass = config.get("irc", "nickpass")
-    name = config.get("irc", "name")
-    listenhost = config.get("tcp", "host")
+    name = "AutoBot"
+    listenhost = "localhost"
     listenport = 8888
-    _ssl = config.getboolean("irc", "ssl")
+    _ssl = True
 
-    bot = AutoBot (nick, name, nickpass, channels, network, listenhost, listenport, port, _ssl)
+    bot = AutoBot (nick, name, channels, network, listenhost, listenport, port, _ssl)
     bot.start()
 
 if __name__ == "__main__":
