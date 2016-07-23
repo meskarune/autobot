@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import codecs, configparser, re, select, socket, ssl, sys, time
+import codecs, configparser, datetime, re, select, socket, ssl, sys, time
 import irc.bot
-from threading import Thread
+import repeat
+from threading import Thread, Timer
 from jaraco.stream import buffer
 from plugins.event import url_announce
 from plugins.command import search, FactInfo, dice
@@ -39,11 +40,17 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         except irc.client.ServerConnectionError:
             sys.stderr.write(sys.exc_info()[1])
 
+        #self.periodic = Timer(960, self.refresh_logs)
+        #self.periodic.start()
+
         #Listen for data to announce to channels
         listenhost = self.config.get("tcp", "host")
         listenport = int(self.config.get("tcp", "port"))
         self.inputthread = TCPinput(self, listenhost, listenport)
         self.inputthread.start()
+
+    def refresh_logs(self):
+        print("1 minute")
 
     def announce (self, text):
         for channel in self.channel_list:
@@ -203,7 +210,8 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 self.say(source, "You don't have permission to do that")
         elif command == "die":
             if isOper:
-                #new_thread.join()
+                self.inputthread.join()
+                self.periodic.cancel()
                 self.die(msg="Bye, cruel world!")
             else:
                 self.say(source, "You don't have permission to do that")
