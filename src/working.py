@@ -7,7 +7,6 @@ import threading
 import sys
 import time
 import datetime
-import errno
 
 
 class announce():
@@ -19,7 +18,7 @@ class announce():
         try:
             self.new_thread = TCPserver(self, host, port)
             self.new_thread.start()
-            print("started tcp listener on {0}:{1}".format(host, port))
+            print("started tcp listener")
             self.second_thread = Periodic(self)
             self.second_thread.daemon = True
             self.second_thread.start()
@@ -30,10 +29,9 @@ class announce():
             time.sleep(1)
             self.new_thread.join()
             self.second_thread.join()
-
+        print("testing 123")
     def uppercase(self, message):
         print (message.upper())
-
     def repeat(self, message):
         print(message)
 
@@ -84,9 +82,6 @@ class TCPserver(threading.Thread):
                             conn.close()
                             continue
                         self.announce.uppercase(buf.decode("utf-8", "replace").strip())
-        except (OSError, select.error) as e:
-            if e.errno != errno.EINTR:
-                raise
         finally:
             self.kq.control([select.kevent(self._socket.fileno(), filter=select.KQ_FILTER_READ, flags=select.KQ_EV_DELETE)], 0, None)
             self.kq.close()

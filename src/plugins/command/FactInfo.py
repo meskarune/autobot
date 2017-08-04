@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """A plugin for Autobot that stores keyword/response pairs and returns them"""
 
+import sys
 import json
 import os.path
 
@@ -20,7 +21,8 @@ class FactInfo(object):
             with open(self.db, encoding='utf-8') as jsonFile:
                 self.results = json.loads(jsonFile.read())
         except ValueError as err:
-            sys.stderr.write("Error with factinfo.json: " + err + " \n")
+            sys.stderr.write("Error with factinfo.json: {0}\n".format(err))
+            return
         except:
             return
     def fcaddadmin(self, nick):

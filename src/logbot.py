@@ -1,31 +1,24 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""A full featured python IRC bot"""
 
-import configparser
-import ssl
-import time
-import datetime
-import re
-import sys
-import codecs
-import irc.bot
-import threading
-import socketserver
 import signal
+import codecs, configparser, datetime, logging, re, select, socket, ssl, sys, time
+import irc.bot
+from threading import Thread
 from jaraco.stream import buffer
 from plugins.event import url_announce, LogFile
-from plugins.command import search, FactInfo, dice
+from plugins.command import search, FactInfo, dice, weather
 
 
-signal.signal(signal.SIGINT, signal.SIG_DFL)
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s [%(levelname)s] (%(threadName)-10s) %(message)s')
+
 irc.client.ServerConnection.buffer_class = buffer.LenientDecodingLineBuffer
 
 # Create our bot class
-class AutoBot(irc.bot.SingleServerIRCBot):
-    """Create the single server irc bot"""
+class AutoBot ( irc.bot.SingleServerIRCBot ):
     def __init__(self):
-        """Set variables, handle logs, and listen for input on a port"""
+        """Set variables listen for input on a port"""
+        # Read from configuration file
         self.config = configparser.ConfigParser()
         self.config.read("autobot.conf")
 
@@ -38,7 +31,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.channel_list = [channel.strip() for channel in self.config.get("irc", "channels").split(",")]
         self.prefix = self.config.get("bot", "prefix")
 
-        irc.client.ServerConnection.buffer_class = buffer.LenientDecodingLineBuffer
 
         # Connect to IRC server
         if self._ssl:
@@ -50,43 +42,42 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                                                 self.nick, self.name,
                                                 reconnection_interval=120,
                                                 connect_factory = factory)
+            logging.debug('Connecting to IRC... {0}:{1} ssl={2}'.format(self.network,
+                                                                        self.port,
+                                                                        self._ssl))
         except irc.client.ServerConnectionError:
-            sys.stderr.write(sys.exc_info()[1])
+            logging.error(sys.exc_info()[1])
 
-        #Listen for data to announce to channels
-        #listenhost = self.config.get("tcp", "host")
-        #listenport = int(self.config.get("tcp", "port"))
-        #self.new_thread = TCPserver(self, listenhost, listenport)
-        #self.new_thread.start()
-
-        # Get Log configuration, create dictionary of log files, start refresh timer.
-        #self.log_scheme = self.config.get("bot", "log_scheme")
-        #self.logs = {}
-        #self.logs['autobot'] = LogFile.LogFile(datetime.datetime.utcnow().strftime(self.log_scheme).format(channel='autobot'))
-        #for ch in self.channel_list:
-        #    log_name = datetime.datetime.utcnow().strftime(self.log_scheme).format(channel=ch)
-        #    self.logs[ch] = LogFile.LogFile(log_name)
-
-        #self.second_thread = Periodic(self)
-        #self.second_thread.daemon = True
-        #self.second_thread.start()
+        self.log_scheme = self.config.get("bot", "log_scheme")
+        self.logs = {}
+        self.logs['autobot'] =  LogFile.LogFile(datetime.datetime.utcnow().strftime(self.log_scheme).format(channel='autobot'))
+        for ch in self.channel_list:
+            log_name = datetime.datetime.utcnow().strftime(self.log_scheme).format(channel=ch)
+            self.logs[ch] = LogFile.LogFile(log_name)
+        second_thread = Periodic(self)
+        second_thread.start()
 
     def start(self):
         try:
             super().start()
         except:
             self.close_logs()
-            self.second_thread.join()
-            self.new_thread.join()
+            self.periodic.cancel()
+            #self.second_thread.join()
             raise
 
     def run(self, connection):
-        """Set global handlers and connect to IRC"""
-        #Allows the logging of users on quit
+        """Set global handler to log users on quit"""
         self.connection.add_global_handler("quit", self.alt_on_quit, -30)
 
-    def announce(self, text):
-        """Send notice to joined channels"""
+    def refresh_logs(self):
+        """Remove stale log files (15 min without writes)"""
+        timestamp = int(time.time())
+        for log in self.logs:
+            if self.logs[log].is_stale(timestamp):
+                self.logs[log].close()
+
+    def announce (self, text):
         for channel in self.channel_list:
             self.connection.notice(channel, text)
             self.log_message(channel, "-!-", "(notice) {0}: {1}"
@@ -105,13 +96,11 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                          .format(self.connection.get_nickname(), text))
 
     def on_nicknameinuse(self, connection, event):
-        """If the nick is in use, get nick_"""
-        connection.nick("{0}_".format(connection.get_nickname()))
+        connection.nick(connection.get_nickname() + "_")
 
-    def on_welcome(self, connection, event):
-        """Join channels and regain nick"""
+    def on_welcome ( self, connection, event ):
         for channel in self.channel_list:
-            connection.join(channel)
+            connection.join(channel) 
             self.log_message("autobot", "-->", "Joined channel {0}"
                              .format(channel))
         if self.nickpass and connection.get_nickname() != self.nick:
@@ -130,7 +119,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         if not event.source:
             return
         source = event.source.nick
-
         if (source and source.lower() == "nickserv"
                 and event.arguments[0].lower().find("identify") >= 0
                 and self.nickpass and self.nick == connection.get_nickname()):
@@ -138,14 +126,6 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             connection.privmsg("nickserv", "identify {0} {1}"
                                .format(self.nick, self.nickpass))
             self.log_message("autobot", "-!-", "Identified to nickserv")
-
-    #def on_disconnect(self, connection, event):
-        #self.server_connect(self.nick, self.name, self.network, self.port, self._ssl)
-
-    def on_pubnotice(self, connection, event):
-        """Log public notices"""
-        self.log_message(event.target, "-!-", "(notice) {0}: {1}"
-                         .format(event.source, event.arguments[0]))
 
     def on_kick(self, connection, event):
         """Log kicked nicks and rejoin channels if bot is kicked"""
@@ -165,8 +145,13 @@ class AutoBot(irc.bot.SingleServerIRCBot):
                 self.log_message(channel, "<--", "{0} has quit"
                                  .format(event.source))
 
+    def on_pubnotice(self, connection, event):
+        """Log public notices"""
+        self.log_message(event.target, "-!-", "(notice) {0}: {1}"
+                         .format(event.source, event.arguments[0]))
+
     def on_join(self, connection, event):
-        """Log channel joins"""
+        """Announce joins"""
         self.log_message(event.target, "-->", "{0} joined the channel"
                          .format(event.source))
         if event.source.nick == self.nick:
@@ -201,8 +186,24 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         self.log_message(event.target, "*", "{0} {1}"
                          .format(event.source.nick, event.arguments[0]))
 
+    def on_privmsg(self, connection, event):
+        """Respond to command requests in private messages"""
+        nick = event.source.nick
+        message = event.arguments[0]
+
+        if nick not in self.logs:
+            self.logs[nick] = LogFile.LogFile(datetime.datetime.utcnow().strftime(self.log_scheme).format(channel=nick))
+        self.log_message(nick, "<{0}>".format(nick), message)
+
+        command = message.partition(' ')[0]
+        arguments = message.partition(' ')[2].strip()
+        if arguments == '':
+            self.do_command(event, False, nick, command, None)
+        else:
+            self.do_command(event, False, nick, command, arguments)
+
     def on_pubmsg(self, connection, event):
-        """Log public messages and respond to command requests"""
+        """Respond to command requests in public channels"""
         channel = event.target
         nick = event.source.nick
         message = event.arguments[0]
@@ -233,26 +234,9 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             self.do_command(event, self.channels[channel].is_oper(nick),
                             channel, command, arguments)
 
-    def on_privmsg(self, connection, event):
-        """Log private messages and respond to command requests"""
-        nick = event.source.nick
-        message = event.arguments[0]
-
-        if nick not in self.logs:
-            self.logs[nick] = LogFile.LogFile(datetime.datetime.utcnow().strftime(self.log_scheme).format(channel=nick))
-        self.log_message(nick, "<{0}>".format(nick), message)
-
-        command = message.partition(' ')[0]
-        arguments = message.partition(' ')[2].strip()
-        if arguments == '':
-            self.do_command(event, False, nick, command, None)
-        else:
-            self.do_command(event, False, nick, command, arguments)
-
     def do_command(self, event, isOper, source, command, arguments):
         """Commands the bot will respond to"""
         user = event.source.nick
-        connection = self.connection
         factoid = FactInfo.FactInfo().fcget(command,user)
         if factoid:
             self.say(source,factoid.format(user))
@@ -276,6 +260,17 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             else:
                 self.do(source, "slaps {0} around a bit with a large trout."
                         .format(arguments.strip()))
+        elif command == "weather":
+            if arguments is None or arguments.isspace():
+                self.say(source, 'Please give me a location such as "weather Plano, TX" or "weather London, UK"')
+            else:
+                query = arguments.split(',')[:2]
+                city, location = query[0], query[1:] or None
+                if len(query) == 1:
+                    reply = weather.getweather(city.strip())
+                if len(query) == 2:
+                    reply = weather.getweather(city.strip(), location[0].strip())
+                self.say(source, reply)
         elif command == "rot13":
             if arguments is None:
                 self.say(source, "I'm sorry, I need a message to cipher,"
@@ -315,12 +310,11 @@ class AutoBot(irc.bot.SingleServerIRCBot):
         elif command == "die":
             if isOper:
                 self.close_logs()
-                self.periodic.cancel()
                 self.die(msg="Bye, cruel world!")
             else:
                 self.say(source, "You don't have permission to do that")
         else:
-            connection.notice(user, "I'm sorry, {0}. I'm afraid I can't do that."
+            self.connection.notice(user, "I'm sorry, {0}. I'm afraid I can't do that."
                               .format(user))
 
     def log_message(self, channel, nick, message):
@@ -334,59 +328,21 @@ class AutoBot(irc.bot.SingleServerIRCBot):
             log_file = self.logs[channel]
         log_file.write("{0} {1}".format(nick, message))
 
-    def refresh_logs(self):
-        """Remove stale log files (15 min without writes)"""
-        timestamp = int(time.time())
-        for log in self.logs:
-            if self.logs[log].is_stale(timestamp):
-                self.logs[log].close()
-
     def close_logs(self):
         """ Close all open log files"""
         for log in self.logs:
             self.logs[log].close()
 
-class TCPserver(threading.Thread):
-    def __init__(self, AutoBot, host, port):
-        threading.Thread.__init__(self)
-        self.AutoBot = AutoBot
-        self.host = host
-        self.port = port
-    def run(self):
-        server = ThreadedTCPServer((self.host, self.port), ThreadedTCPRequestHandler)
-        try:
-            server.serve_forever()
-        finally:
-            server.shutdown()
-            server.server_close()
-
-class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
-    """ Echo data back in uppercase """
-    def handle(self):
-        self.AutoBot = AutoBot
-        data = self.request.recv(1024)
-        cur_thread = threading.current_thread()
-        if data is not None:
-            self.AutoBot.announce(data.decode("utf-8", "replace").strip())
-        self.request.close()
-
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    daemon_threads = True
-    allow_reuse_address = True
-
-    def __init__(self, server_address, RequestHandlerClass):
-        socketserver.TCPServer.__init__(self, server_address, RequestHandlerClass)
-
-class Periodic(threading.Thread):
+class Periodic(Thread):
     def __init__(self, AutoBot):
-        threading.Thread.__init__(self)
+        Thread.__init__(self)
         self.AutoBot = AutoBot
         self.starttime=time.time()
 
     def run(self):
         while True:
-            self.AutoBot.refresh_logs()
             time.sleep(960.0 - ((time.time() - self.starttime) % 960.0))
+            self.AutoBot.refresh_logs()
 
 def main():
     bot = AutoBot()
