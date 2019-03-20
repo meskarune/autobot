@@ -1,12 +1,13 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import signal
 import codecs, configparser, datetime, logging, re, select, socket, ssl, sys, time
 import irc.bot
 from threading import Thread
 from jaraco.stream import buffer
-from plugins.event import url_announce, LogFile
-from plugins.command import search, FactInfo, dice, weather
+from plugins.event import url_announce, LogFile, conversion
+from plugins.command import search, FactInfo, dice, weather, is_it_up
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -223,6 +224,16 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 if title is not None:
                     self.say(channel, title)
 
+        conversion_regex = re.compile(
+            r'((-?[0-9]{0,3}\.?\b[0-9]{0,3}\.?[0-9]{1,3})'
+            r'\s?°?\s?(f|c)\b)', re.IGNORECASE)
+
+        if conversion_regex.search(message):
+            num_list = conversion_regex.findall(message)
+            converted_msg = conversion.print_temp_conversion(message, num_list)
+            if converted_msg is not None:
+                self.say(channel, converted_msg)
+
         command_regex = re.compile(
             r'^(' + re.escape(self.nick) + '( |[:,] ?)'
             r'|' + re.escape(self.prefix) + ')'
@@ -264,12 +275,7 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
             if arguments is None or arguments.isspace():
                 self.say(source, 'Please give me a location such as "weather Plano, TX" or "weather London, UK"')
             else:
-                query = arguments.split(',')[:2]
-                city, location = query[0], query[1:] or None
-                if len(query) == 1:
-                    reply = weather.getweather(city.strip())
-                if len(query) == 2:
-                    reply = weather.getweather(city.strip(), location[0].strip())
+                reply = weather.getweather(arguments.strip())
                 self.say(source, reply)
         elif command == "rot13":
             if arguments is None:
@@ -282,6 +288,12 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
                 self.say(source, "{0} is bloat.".format(user))
             else:
                 self.say(source, "{0} is bloat".format(arguments.strip()))
+        elif command == "isup":
+            if arguments is None or arguments.isspace():
+                self.say(source, "Please give me a website to check. "
+                         "isup <website>")
+            else:
+                self.say(source, is_it_up.isup(arguments.strip()))
         elif command == "ddg":
             query = search.ddg(arguments)
             self.say(source, query)
@@ -297,11 +309,14 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         elif command == "gh":
             query = search.github(arguments)
             self.say(source, query)
+        elif command == "ud":
+            query = search.ud(arguments)
+            self.say(source, query)
         elif command == "help":
             self.say(source, "Available commands: ![devour, dice <num>, "
                      "bloat <message>, slap, rot13 <message>, "
                      "ddg <search>, w <search>, alw <search>, gh <search>, "
-                     "disconnect, die, help]")
+                     "ud <search>, disconnect, die, help]")
         elif command == "disconnect":
             if isOper:
                 self.disconnect(msg="I'll be back!")
