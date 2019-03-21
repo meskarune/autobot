@@ -7,15 +7,6 @@ import json
 from urllib.parse import quote_plus
 from requests import get
 
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""A plugin for Autobot that gives the weather"""
-
-import configparser
-import json
-from urllib.parse import quote_plus
-from requests import get
-
 
 def parseweather(data):
     icon_list = {
