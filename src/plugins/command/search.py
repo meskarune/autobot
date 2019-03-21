@@ -75,12 +75,31 @@ def alwiki(search):
     return data
 
 def github(search):
-    """Search github repositories"""
+    """Search Github and return url"""
     try:
         query = "https://api.github.com/search/repositories?q={0}".format(quote_plus(search))
         results = json.loads(get(query).text)
         description = results['items'][0]['description']
         link = results['items'][0]['html_url']
+        if description:
+            if len(description) > 250:
+                data = "{0}… - {1}".format(description[0:250],link)
+            else:
+                data = "{0} - {1}".format(description,link)
+        else:
+            data = link
+    except:
+        return
+    return data
+
+def ud(search):
+    """Search Urban Dictionary and return a deffinition and a Link to the result"""
+    try:
+        query = "https://api.urbandictionary.com/v0/define?term={0}".format(quote_plus(search))
+        results = json.loads(get(query).text)
+        definition = results['list'][0]['definition']
+        description = definition.strip().translate(str.maketrans('','','\r\n'))
+        link = results['list'][0]['permalink']
         if description:
             if len(description) > 250:
                 data = "{0}… - {1}".format(description[0:250],link)
