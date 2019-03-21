@@ -1,7 +1,6 @@
 {
     "admins": [
-        "meskarune",
-        "fsckd"
+        "meskarune"
     ],
     "factinfo": {
         "hello": "hello {0}",
@@ -9,7 +8,7 @@
         "ugm": "good (UGT) morning to all from {0}!",
         "ugn": "good (UGT) night to all from {0}!",
         "archlinux": "A simple, lightweight distribution. <https:\/\/archlinux.org>",
-        "awops": "HALP! jy2wong meskarune tigrmesh tigr fsckd vodik yar",
+        "awops": "HALP! jy2wong meskarune tigrmesh tigr el yar",
         "archwomen": "https:\/\/archwomen.org",
         "rnj": "https:\/\/reddit.com/r/newjersey",
         "lastfm": "http:\/\/www.last.fm/user/{0}",
@@ -38,6 +37,9 @@
         "jæja": "jæja",
         "neat": "http:\/\/i.imgur.com\/iYOXpB3.gif",
         "yolo": "yolo() { curl $1 | sudo bash }",
-        "cry": "ಥ_ಥ"
+        "cry": "ಥ_ಥ",
+        "!!": "OMG!!!!",
+        "meskarune": "https:\/\/arch.har-ikkje.net\/gfx\/meskarune.jpg",
+        "tmi": "http:\/\/www.catb.org\/~esr\/jargon\/html\/S\/sharing-violation.html"
     }
 }
