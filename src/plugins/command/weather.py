@@ -7,8 +7,17 @@ import json
 from urllib.parse import quote_plus
 from requests import get
 
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""A plugin for Autobot that gives the weather"""
 
-def parseweather(url, units):
+import configparser
+import json
+from urllib.parse import quote_plus
+from requests import get
+
+
+def parseweather(data):
     icon_list = {
         "01": "☀",
         "02": "🌤",
@@ -20,50 +29,56 @@ def parseweather(url, units):
         "13": "🌨",
         "50": "🌫",
     }
-    if units == "imperial":
-        measure = "°F"
-        speed = "mph"
+    weather = {
+        "location"    : data["name"],
+        "conditions"  : data["weather"][0]["main"],
+        "temperature" : round(float(data["main"]["temp"])),
+        "humidity"    : round(float(data["main"]["humidity"])),
+        "icon"        : icon_list.get(data["weather"][0]["icon"][:2],""),
+        "windspeed"   : round(data["wind"]["speed"])
+        }
+    if data["sys"]["country"] == "US":
+        weather.update( {
+            "scale" : "°F",
+            "speed" : "mph"
+        })
     else:
-        measure = "°C"
-        speed = "kph"
-    try:
-        weather_response = json.loads(get(url).text)
-        if weather_response:
-            location = weather_response["name"]
-            conditions = weather_response["weather"][0]["main"]
-            tempurature = float(weather_response['main']['temp'])
-            icon = weather_response["weather"][0]["icon"]
-            humidity = float(weather_response['main']['humidity'])
-            windspeed = weather_response['wind']['speed']
-            if tempurature:
-                return "The current weather for {0} is {1}{2} {3}  {4}, {5}% humidity with {6}{7} winds".format(
-                    location, round(tempurature), measure,
-                    icon_list.get(icon[:2]), conditions, round(humidity),
-                    round(windspeed), speed)
-    except:
-        return "There was an error getting the weather data."
+        weather.update( {
+            "scale" : "°C",
+            "speed" : "kph"
+        })
+    return weather
+
+def parsegeocode(geo):
+    r = geo["results"][0]["locations"][0]
+    location =  {
+            "lat" : r["latLng"]["lat"],
+            "lon" : r["latLng"]["lng"]
+    }
+    if r["adminArea1"] == "US":
+        location["units"] = "imperial"
+    else:
+        location["units"] = "metric"
+    return location
+
+def fetch(url, params):
+    return get(url, params = params).json()
 
 def getweather(location):
     """Get wearther and return the result"""
     config = configparser.ConfigParser()
     config.read("plugins/command/weather.conf")
-    geocode_api = config.get("Key", "api_key_geocode")
-    weather_api = config.get("Key", "api_key_weather")
-    geocode_url = "http://open.mapquestapi.com/geocoding/v1/address?key={0}&location={1}".format(
-        geocode_api, quote_plus(location))
     try:
-        geocode_response = json.loads(get(geocode_url).text)
-        if geocode_response:
-            lat = geocode_response["results"][0]["locations"][0]["latLng"]["lat"]
-            lon = geocode_response["results"][0]["locations"][0]["latLng"]["lng"]
-            country = geocode_response["results"][0]["locations"][0]["adminArea1"]
-            if country == "US":
-                cf = "imperial"
-            else:
-                cf = "metric"
+        position = parsegeocode(fetch("http://open.mapquestapi.com/geocoding/v1/address", params = {
+            "key" : config.get("Key", "api_key_geocode"),
+            "location" : location
+        }))
     except:
-        return
-    weather_url = "https://api.openweathermap.org/data/2.5/weather?appid={0}&units={1}&lat={2}&lon={3}".format(
-        weather_api, cf, lat, lon)
-    reply = parseweather(weather_url, cf)
-    return reply
+        return "Error getting location data"
+    position.update( { "appid" : config.get("Key", "api_key_weather") } )
+    try:
+        weather = parseweather(fetch("https://api.openweathermap.org/data/2.5/weather", params = position))
+    except:
+        return "Error getting weather data"
+    template = "The current weather for {location} is {temperature}{scale} {icon} {conditions}, {humidity}% humidity with {windspeed} {speed}"
+    return template.format(**weather)
