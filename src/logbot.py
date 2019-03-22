@@ -312,6 +312,9 @@ class AutoBot ( irc.bot.SingleServerIRCBot ):
         elif command == "ud":
             query = search.ud(arguments)
             self.say(source, query)
+        elif command == "imdb":
+            query = search.imdb(arguments)
+            self.say(source, query)
         elif command == "help":
             self.say(source, "Available commands: ![devour, dice <num>, "
                      "bloat <message>, slap, rot13 <message>, "
