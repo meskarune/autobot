@@ -4,7 +4,6 @@
 
 import configparser
 import json
-from urllib.parse import quote_plus
 from requests import get
 
 
@@ -71,5 +70,5 @@ def getweather(location):
         weather = parseweather(fetch("https://api.openweathermap.org/data/2.5/weather", params = position))
     except:
         return "Error getting weather data"
-    template = "The current weather for {location} is {temperature}{scale} {icon} {conditions}, {humidity}% humidity with {windspeed} {speed}"
+    template = "The current weather for {location} is {temperature}{scale} {icon} {conditions}, {humidity}% humidity with {windspeed}{speed} wind"
     return template.format(**weather)
