@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """A plugin for Autobot that returns a search result"""
 
+import configparser
 import re
 import json
 from urllib.parse import quote_plus
@@ -120,8 +121,10 @@ def ud(search):
 
 def imdb(search):
     """Search for movie information"""
+    config = configparser.ConfigParser()
+    config.read("plugins/command/weather.conf")
     try:
-        oparams = {"apikey": "1a5cf46", "t": search}
+        oparams = {"apikey": config.get("Key", "api_key_omdb"), "t": search}
         results = fetch("http://www.omdbapi.com/", oparams).json()
         title = results['Title']
         year = results['Year']
