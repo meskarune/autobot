@@ -8,12 +8,20 @@ from urllib.parse import quote_plus
 from requests import get
 from bs4 import BeautifulSoup
 
+def fetch(url, url_params):
+    hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36',
+           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+           'Accept-Encoding': 'none',
+           'Accept-Language': 'en-US,en;q=0.9',
+           'Connection': 'keep-alive'}
+    return get(url, headers=hdr, params=url_params)
+
 def ddg(search):
     """Search duck duck go and return the first url from the restuls"""
     if search[0].startswith("!"):
         try:
-            query = "http://api.duckduckgo.com/?q={0}&format=json&no_html=1&no_redirect=1".format(quote_plus(search))
-            results = json.loads(get(query).text)
+            ddapi_params = {"format" : "json", "no_html" : "1", "no_redirect": "1", "q": search}
+            results = fetch("http://api.duckduckgo.com", ddapi_params).json()
             if results['Redirect']:
                 link = results['Redirect']
             else:
@@ -22,11 +30,12 @@ def ddg(search):
             return
     else:
         try:
-            site = get("http://duckduckgo.com/lite/?q={0}&kl=us-en&k1=-1&kd=-1&kp=1".format(search)).text
+            ddparams = {"kl": "us-en", "k1": "-1", "kd": "-1", "kp": "1", "t": "h_", "q": search}
+            site = fetch("http://duckduckgo.com/lite", ddparams)
         except:
             return
         try:
-            parsed = BeautifulSoup(site, "html.parser")
+            parsed = BeautifulSoup(site.text, "html.parser")
         except:
             return
         try:
@@ -41,8 +50,8 @@ def ddg(search):
 def wiki(search):
     """Search Wikipedia and return a short description and Link to the result"""
     try:
-        query = "https://en.wikipedia.org/w/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
-        results = json.loads(get(query).text)
+        wikiparams = {"action": "opensearch", "search": search, "format": "json"}
+        results = fetch("https://en.wikipedia.org/w/api.php", wikiparams).json()
         link = results[3][0]
         description = results[2][0]
         if description:
@@ -59,8 +68,8 @@ def wiki(search):
 def alwiki(search):
     """Search the arch linux wiki and return a Link to the result"""
     try:
-        query = "https://wiki.archlinux.org/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
-        results = json.loads(get(query).text)
+        wikiparams = {"action": "opensearch", "search": search, "format": "json"}
+        results = fetch("https://wiki.archlinux.org/api.php", wikiparams).json()
         description = results[1][0]
         link = results[3][0]
         if description:
@@ -77,8 +86,7 @@ def alwiki(search):
 def github(search):
     """Search Github and return url"""
     try:
-        query = "https://api.github.com/search/repositories?q={0}".format(quote_plus(search))
-        results = json.loads(get(query).text)
+        results = fetch("https://api.github.com/search/repositories", {"q": search}).json()
         description = results['items'][0]['description']
         link = results['items'][0]['html_url']
         if description:
@@ -95,8 +103,7 @@ def github(search):
 def ud(search):
     """Search Urban Dictionary and return a deffinition and a Link to the result"""
     try:
-        query = "https://api.urbandictionary.com/v0/define?term={0}".format(quote_plus(search))
-        results = json.loads(get(query).text)
+        results = fetch("https://api.urbandictionary.com/v0/define", {"term": search}).json()
         definition = results['list'][0]['definition']
         description = definition.strip().translate(str.maketrans('','','\r\n'))
         link = results['list'][0]['permalink']
@@ -110,3 +117,23 @@ def ud(search):
     except:
         return
     return data
+
+def imdb(search):
+    """Search for movie information"""
+    try:
+        oparams = {"apikey": "1a5cf46", "t": search}
+        results = fetch("http://www.omdbapi.com/", oparams).json()
+        title = results['Title']
+        year = results['Year']
+        description = results['Plot']
+        movID = results['imdbID']
+        if description:
+            if len(description) > 250:
+                reply = "{0} ({1}): {2}… - https://www.imdb.com/title/{3}/".format(title, year, description[0:250], movID)
+            else:
+                reply = "{0} ({1}): {2} - https://www.imdb.com/title/{3}/".format(title, year, description, movID)
+        else:
+            reply = "{0} ({1}) - https://www.imdb.com/title/{3}/".format(title, year, movID)
+    except:
+        return
+    return reply
