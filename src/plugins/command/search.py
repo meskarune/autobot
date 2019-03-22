@@ -122,7 +122,7 @@ def ud(search):
 def imdb(search):
     """Search for movie information"""
     config = configparser.ConfigParser()
-    config.read("plugins/command/weather.conf")
+    config.read("plugins/command/search.conf")
     try:
         oparams = {"apikey": config.get("Key", "api_key_omdb"), "t": search}
         results = fetch("http://www.omdbapi.com/", oparams).json()
