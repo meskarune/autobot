@@ -10,7 +10,7 @@ from requests import get
 from bs4 import BeautifulSoup
 
 def fetch(url, url_params):
-    hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36',
+    hdr = {'User-Agent': 'Autobot/1.0 (+https://github.com/meskarune/autobot)',
            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
            'Accept-Encoding': 'none',
            'Accept-Language': 'en-US,en;q=0.9',
@@ -31,7 +31,7 @@ def ddg(search):
             return
     else:
         try:
-            ddparams = {"kl": "us-en", "k1": "-1", "kd": "-1", "kp": "1", "t": "h_", "q": search}
+            ddparams = {"kl": "us-en", "k1": "-1", "kd": "-1", "kp": "1", "t": "Autobot", "q": search}
             site = fetch("http://duckduckgo.com/lite", ddparams)
         except:
             return
